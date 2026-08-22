@@ -3,8 +3,13 @@
     <div class="banner-content">
       <!-- Left: ISP & Carrier Info -->
       <div class="isp-block">
-        <div class="isp-icon-box">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="isp-icon-box" :class="{ 'vpn-shield-active': networkInfo.vpn?.is_vpn }">
+          <!-- Shield Icon if VPN, else Network WiFi Icon -->
+          <svg v-if="networkInfo.vpn?.is_vpn" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
             <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
             <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
@@ -32,6 +37,23 @@
         </div>
       </div>
 
+      <!-- Center-Right: VPN & Tunnel Security Telemetry -->
+      <div class="vpn-telemetry-block" :class="networkInfo.vpn?.is_vpn ? 'vpn-on' : 'vpn-off'">
+        <div class="meta-item">
+          <span class="meta-lbl">VPN / TUNNEL:</span>
+          <span class="vpn-status-text">
+            <span class="pulse-dot" :class="networkInfo.vpn?.is_vpn ? 'dot-vpn' : 'dot-direct'"></span>
+            {{ networkInfo.vpn?.is_vpn ? networkInfo.vpn.vpn_name : 'DIRECT ISP (NO VPN)' }}
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-lbl">ROUTING:</span>
+          <span class="meta-val highlight-route">
+            {{ networkInfo.vpn?.is_vpn ? networkInfo.vpn.tunnel_type : 'Native Physical Gateway' }}
+          </span>
+        </div>
+      </div>
+
       <!-- Right: Client Link & Browser Telemetry -->
       <div class="client-telemetry-block">
         <div class="meta-item">
@@ -39,10 +61,9 @@
           <span class="meta-val">{{ clientLinkType }}</span>
         </div>
         <div class="meta-item">
-          <span class="meta-lbl">STATUS:</span>
-          <span class="detected-badge">
-            <span class="pulse-dot"></span>
-            LIVE NETWORK DETECTED
+          <span class="meta-lbl">OVERHEAD:</span>
+          <span class="meta-val" :class="networkInfo.vpn?.is_vpn ? 'text-amber' : 'text-green'">
+            {{ networkInfo.vpn?.overhead_estimate || '0 ms' }}
           </span>
         </div>
       </div>
@@ -63,7 +84,15 @@ const props = defineProps({
       region: '',
       country: 'Local Network',
       country_code: 'LOC',
-      asn: 'Private LAN'
+      asn: 'Private LAN',
+      vpn: {
+        is_vpn: false,
+        vpn_name: 'None (Direct ISP)',
+        tunnel_type: 'Direct Physical Routing',
+        security_status: 'Direct Link',
+        overhead_estimate: '0 ms (Native)',
+        dns_shield: 'ISP Default DNS'
+      }
     })
   }
 });
@@ -126,6 +155,14 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+  transition: all 0.3s ease;
+}
+
+.vpn-shield-active {
+  background: rgba(0, 255, 136, 0.15) !important;
+  border-color: var(--neon-green) !important;
+  color: var(--neon-green) !important;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.4) !important;
 }
 
 .isp-text {
@@ -154,14 +191,42 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
-.geo-block, .client-telemetry-block {
+.geo-block, .vpn-telemetry-block, .client-telemetry-block {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  background: rgba(6, 9, 19, 0.4);
+  background: rgba(6, 9, 19, 0.45);
   padding: 0.45rem 0.85rem;
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.vpn-on {
+  border-color: rgba(0, 255, 136, 0.25);
+}
+
+.vpn-status-text {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dot-vpn {
+  background: var(--neon-green) !important;
+  box-shadow: 0 0 8px var(--neon-green) !important;
+}
+
+.dot-direct {
+  background: var(--cyan) !important;
+  box-shadow: 0 0 8px var(--cyan) !important;
+}
+
+.highlight-route {
+  color: var(--cyan);
+  font-size: 0.72rem;
 }
 
 .meta-item {
@@ -183,15 +248,8 @@ onMounted(() => {
 }
 .meta-val.cyan { color: var(--cyan); }
 .meta-val.green { color: var(--neon-green); }
-
-.detected-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--neon-green);
-  font-size: 0.68rem;
-  font-weight: 700;
-}
+.text-amber { color: var(--amber); }
+.text-green { color: var(--neon-green); }
 
 @media (max-width: 900px) {
   .banner-content {

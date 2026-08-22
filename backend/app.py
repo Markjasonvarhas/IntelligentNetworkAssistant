@@ -52,10 +52,78 @@ def get_system_status():
     }), 200
 
 
+def detect_vpn_status(org, asn_str, isp_str):
+    """
+    Analyzes ASN, Organization, and ISP signatures to determine if traffic is routed through
+    Cloudflare WARP, commercial VPNs (Nord, Express, Mullvad, Proton), WireGuard, or Cloud Proxies.
+    """
+    text = f"{org} {asn_str} {isp_str}".lower()
+    
+    # 1. Cloudflare WARP / Gateway
+    if "cloudflare" in text or "as13335" in text or "as209242" in text:
+        return {
+            "is_vpn": True,
+            "vpn_name": "Cloudflare WARP / 1.1.1.1 Tunnel",
+            "tunnel_type": "WireGuard / MASQUE (Cloudflare Edge)",
+            "security_status": "Encrypted VPN Tunnel Active",
+            "overhead_estimate": "Low (~5-15ms)",
+            "dns_shield": "Cloudflare Secure DNS"
+        }
+    
+    # 2. Commercial / Privacy VPNs
+    vpn_keywords = {
+        "mullvad": "Mullvad VPN (WireGuard/OpenVPN)",
+        "nordvpn": "NordVPN (NordLynx / WireGuard)",
+        "expressvpn": "ExpressVPN (Lightway)",
+        "surfshark": "Surfshark VPN",
+        "proton": "ProtonVPN (WireGuard)",
+        "wireguard": "WireGuard Encrypted Tunnel",
+        "tailscale": "Tailscale WireGuard Mesh",
+        "private internet access": "Private Internet Access (PIA)",
+        "cyberghost": "CyberGhost VPN",
+        "windscribe": "Windscribe VPN",
+        "ovpn": "OpenVPN Tunnel"
+    }
+    for kw, label in vpn_keywords.items():
+        if kw in text:
+            return {
+                "is_vpn": True,
+                "vpn_name": label,
+                "tunnel_type": "Encrypted Virtual Private Network",
+                "security_status": "Encrypted VPN Tunnel Active",
+                "overhead_estimate": "Moderate (~20-40ms)",
+                "dns_shield": "VPN Encrypted Resolver"
+            }
+            
+    # 3. Datacenter / Cloud Proxy Hosting
+    datacenter_keywords = ["digitalocean", "amazon.com", "aws", "google cloud", "microsoft azure", "ovh", "linode", "hetzner", "oracle cloud", "vultr"]
+    for dc in datacenter_keywords:
+        if dc in text:
+            return {
+                "is_vpn": True,
+                "vpn_name": "Cloud Proxy / Datacenter Egress",
+                "tunnel_type": "Encrypted Cloud Proxy",
+                "security_status": "Datacenter / Proxy Egress Active",
+                "overhead_estimate": "Variable",
+                "dns_shield": "Datacenter DNS"
+            }
+
+    # 4. Direct Residential / Mobile ISP
+    return {
+        "is_vpn": False,
+        "vpn_name": "None (Direct ISP)",
+        "tunnel_type": "Direct Physical Routing (No VPN)",
+        "security_status": "Direct Physical Link",
+        "overhead_estimate": "0 ms (Native)",
+        "dns_shield": "ISP Default DNS"
+    }
+
+
 @app.route("/api/client-network-info", methods=["GET"])
 def get_client_network_info():
     """
-    Automatically detects the visitor's connected network, Public IP, ISP, ASN, and City/Country.
+    Automatically detects the visitor's connected network, Public IP, ISP, ASN, Location,
+    and inspects active VPN / Cloudflare WARP / Encrypted Tunnel status.
     """
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
@@ -63,7 +131,6 @@ def get_client_network_info():
     else:
         client_ip = request.remote_addr or "127.0.0.1"
 
-    # For local/private ranges, detect the active public egress IP
     is_private = client_ip in ["127.0.0.1", "localhost", "::1"] or client_ip.startswith("192.168.") or client_ip.startswith("10.") or client_ip.startswith("172.")
     lookup_url = "https://ipapi.co/json/" if is_private else f"https://ipapi.co/{client_ip}/json/"
 
@@ -74,18 +141,26 @@ def get_client_network_info():
         )
         with urllib.request.urlopen(req, timeout=3) as resp:
             geo_data = json.loads(resp.read().decode())
+            org = geo_data.get("org", "")
+            asn_str = geo_data.get("asn", "")
+            isp_str = geo_data.get("org") or geo_data.get("asn", "Local Network")
+            
+            vpn_meta = detect_vpn_status(org, asn_str, isp_str)
+
             return jsonify({
                 "ip": geo_data.get("ip", client_ip),
-                "isp": geo_data.get("org") or geo_data.get("asn", "Local Network"),
+                "isp": isp_str,
                 "city": geo_data.get("city", "Local City"),
                 "region": geo_data.get("region", ""),
                 "country": geo_data.get("country_name", "Local"),
                 "country_code": geo_data.get("country_code", "LOC"),
-                "asn": geo_data.get("asn", "Private ASN"),
+                "asn": asn_str or "Private ASN",
                 "timezone": geo_data.get("timezone", "UTC"),
-                "is_local": is_private
+                "is_local": is_private,
+                "vpn": vpn_meta
             }), 200
     except Exception:
+        vpn_meta = detect_vpn_status("", "", "Local LAN")
         return jsonify({
             "ip": client_ip,
             "isp": "Local Gateway / Wi-Fi Network",
@@ -95,7 +170,8 @@ def get_client_network_info():
             "country_code": "LOC",
             "asn": "Private LAN",
             "timezone": "UTC",
-            "is_local": True
+            "is_local": True,
+            "vpn": vpn_meta
         }), 200
 
 
