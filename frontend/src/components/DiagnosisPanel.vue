@@ -2,7 +2,7 @@
   <div class="cyber-card diagnosis-panel scanlines">
     <div class="panel-header">
       <div class="header-left">
-        <span class="panel-tag">AI INFERENCE ENGINE</span>
+        <span class="panel-tag">AUTOMATED INFERENCE ENGINE</span>
         <h2 class="panel-title">AUTOMATED FAULT DIAGNOSIS</h2>
       </div>
 

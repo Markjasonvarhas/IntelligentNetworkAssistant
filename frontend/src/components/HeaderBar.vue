@@ -10,7 +10,7 @@
         </svg>
       </div>
       <div class="brand-text">
-        <h1 class="brand-title">NETWORK<span class="neon-glow-cyan">NOC</span> AI</h1>
+        <h1 class="brand-title">NETWORK<span class="neon-glow-cyan">NOC</span></h1>
         <p class="brand-subtitle">Automated Fault Diagnosis & Performance Telemetry</p>
       </div>
     </div>

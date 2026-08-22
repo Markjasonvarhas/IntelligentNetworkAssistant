@@ -61,7 +61,7 @@
       <!-- Footer Telemetry Strip -->
       <footer class="cyber-footer">
         <div class="footer-left">
-          <span>INTELLIGENT NETWORK ASSISTANT • NOC MONITORING & AI TELEMETRY</span>
+          <span>INTELLIGENT NETWORK ASSISTANT • NOC MONITORING & PERFORMANCE TELEMETRY</span>
         </div>
         <div class="footer-right">
           <span>WSL2 KERNEL • PYTHON FLASK • SCIKIT-LEARN • VUE 3</span>
