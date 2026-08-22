@@ -1,0 +1,227 @@
+:root {
+  --bg-primary: #060913;
+  --bg-secondary: #0c1222;
+  --bg-panel: rgba(13, 20, 38, 0.82);
+  --bg-panel-hover: rgba(19, 29, 54, 0.9);
+  --border-cyan: rgba(0, 240, 255, 0.25);
+  --border-cyan-glow: rgba(0, 240, 255, 0.6);
+  --cyan: #00f0ff;
+  --neon-green: #00ff88;
+  --amber: #ffb703;
+  --crimson: #ff0055;
+  --neon-purple: #b5179e;
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-muted: #57606a;
+  --font-display: 'Orbitron', -apple-system, sans-serif;
+  --font-mono: 'Fira Code', monospace;
+  --font-body: 'Rajdhani', 'Inter', -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan);
+}
+
+/* Cyber Panels & Glassmorphism */
+.cyber-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-cyan);
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 240, 255, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.4;
+}
+
+.cyber-card:hover {
+  border-color: var(--border-cyan-glow);
+  box-shadow: 0 6px 28px rgba(0, 240, 255, 0.15), inset 0 0 20px rgba(0, 240, 255, 0.05);
+}
+
+/* Cyber Cut-Corner / Tech Accent */
+.corner-accent {
+  position: relative;
+}
+.corner-accent::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 10px 10px;
+  border-color: transparent transparent var(--cyan) transparent;
+}
+
+/* Cyber Buttons */
+.cyber-btn {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0.65rem 1.4rem;
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+.cyber-btn:hover {
+  background: var(--cyan);
+  color: var(--bg-primary);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+  text-shadow: none;
+}
+
+.cyber-btn:active {
+  transform: scale(0.97);
+}
+
+.cyber-btn.btn-danger {
+  background: rgba(255, 0, 85, 0.1);
+  color: var(--crimson);
+  border-color: var(--crimson);
+  text-shadow: 0 0 8px rgba(255, 0, 85, 0.6);
+  box-shadow: 0 0 10px rgba(255, 0, 85, 0.2);
+}
+.cyber-btn.btn-danger:hover {
+  background: var(--crimson);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+}
+
+.cyber-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+  box-shadow: none;
+}
+
+/* Glowing Status Badges */
+.badge-status {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.badge-healthy {
+  background: rgba(0, 255, 136, 0.12);
+  color: var(--neon-green);
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.2);
+}
+
+.badge-warning {
+  background: rgba(255, 183, 3, 0.12);
+  color: var(--amber);
+  border: 1px solid rgba(255, 183, 3, 0.35);
+  box-shadow: 0 0 8px rgba(255, 183, 3, 0.2);
+}
+
+.badge-critical {
+  background: rgba(255, 0, 85, 0.12);
+  color: var(--crimson);
+  border: 1px solid rgba(255, 0, 85, 0.35);
+  box-shadow: 0 0 8px rgba(255, 0, 85, 0.2);
+}
+
+/* Pulsing Dots */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: pulse-glow 1.5s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.3); opacity: 0.4; }
+}
+
+/* Glowing Neon Text */
+.neon-glow-cyan {
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
+}
+
+.neon-glow-green {
+  color: var(--neon-green);
+  text-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
+}
+
+.neon-glow-amber {
+  color: var(--amber);
+  text-shadow: 0 0 12px rgba(255, 183, 3, 0.6);
+}
+
+.neon-glow-crimson {
+  color: var(--crimson);
+  text-shadow: 0 0 12px rgba(255, 0, 85, 0.6);
+}
+
+/* Scanlines overlay effect */
+.scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+}
