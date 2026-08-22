@@ -10,9 +10,6 @@
         @update:activeTab="activeTab = $event"
         :systemStatus="systemStatus"
         :matrixEnabled="matrixEnabled"
-        :refreshInterval="refreshInterval"
-        :countdown="countdown"
-        @update:refreshInterval="onIntervalChanged"
         @toggle-matrix="matrixEnabled = !matrixEnabled"
       />
 
@@ -314,15 +311,6 @@ async function loadVisitorNetwork() {
   }
 }
 
-const refreshInterval = ref(5); // Default: 5 seconds (Recommended)
-const countdown = ref(5);
-let tickerTimer = null;
-
-function onIntervalChanged(sec) {
-  refreshInterval.value = sec;
-  countdown.value = sec;
-}
-
 onMounted(() => {
   checkStatus();
   loadVisitorNetwork();
@@ -330,20 +318,7 @@ onMounted(() => {
   // Rapid 1.5s sub-second real-time streaming probe
   realtimeStreamTimer = setInterval(streamLiveProbe, 1500);
 
-  // 1-second auto-refresh countdown ticker
-  tickerTimer = setInterval(() => {
-    if (refreshInterval.value > 0) {
-      countdown.value--;
-      if (countdown.value <= 0) {
-        countdown.value = refreshInterval.value;
-        if (!scanning.value) {
-          runManualScan(latestMetrics.value.host, false);
-        }
-      }
-    }
-  }, 1000);
-
-  // Periodic status refresh
+  // Periodic status check
   pollInterval = setInterval(() => {
     checkStatus();
   }, 6000);
@@ -353,7 +328,6 @@ onUnmounted(() => {
   if (pollInterval) clearInterval(pollInterval);
   if (sentinelTimer) clearInterval(sentinelTimer);
   if (realtimeStreamTimer) clearInterval(realtimeStreamTimer);
-  if (tickerTimer) clearInterval(tickerTimer);
 });
 </script>
 

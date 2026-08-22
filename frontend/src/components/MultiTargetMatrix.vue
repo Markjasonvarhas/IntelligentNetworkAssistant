@@ -2,20 +2,20 @@
   <div class="cyber-card probe-panel scanlines">
     <div class="panel-header">
       <div class="header-left">
-        <span class="panel-tag">DISTRIBUTED NODE TELEMETRY</span>
-        <h3 class="panel-title">MULTI-TARGET PING MATRIX</h3>
+        <span class="panel-tag">MULTI-CLOUD OBSERVABILITY & EDGE TELEMETRY</span>
+        <h3 class="panel-title">GLOBAL CLOUD INFRASTRUCTURE & BACKBONE MATRIX</h3>
       </div>
       <button class="cyber-btn btn-sm" :disabled="probing" @click="runProbes">
         <svg v-if="!probing" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
         </svg>
         <span v-else class="spinner-icon"></span>
-        {{ probing ? 'PROBING NODES...' : 'PROBE ALL TARGETS' }}
+        {{ probing ? 'PROBING CLOUD BACKBONES...' : 'PROBE MULTI-CLOUD MATRIX' }}
       </button>
     </div>
 
     <p class="panel-desc">
-      Concurrent multi-hop latency telemetry across global primary DNS, CDN, and recursive resolver backbones to isolate upstream ISP routing bottlenecks.
+      Concurrent multi-region latency telemetry across Amazon Web Services (AWS), Google Cloud (GCP), Microsoft Azure, and Cloudflare Edge to measure multi-cloud routing reachability.
     </p>
 
     <!-- Node Cards Grid -->

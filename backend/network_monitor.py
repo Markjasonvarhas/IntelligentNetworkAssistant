@@ -311,10 +311,12 @@ def compute_quality_scores(metrics):
 # ==============================================================================
 
 DEFAULT_PROBE_TARGETS = [
-    {"name": "Google DNS", "host": "8.8.8.8", "type": "Global DNS"},
-    {"name": "Cloudflare DNS", "host": "1.1.1.1", "type": "Global CDN / DNS"},
-    {"name": "OpenDNS (Cisco)", "host": "208.67.222.222", "type": "Security DNS"},
-    {"name": "Quad9 Secure", "host": "9.9.9.9", "type": "Privacy DNS"}
+    {"name": "Google Cloud (GCP)", "host": "8.8.8.8", "type": "Global Cloud / DNS"},
+    {"name": "Cloudflare Global Edge", "host": "1.1.1.1", "type": "Global CDN / Edge"},
+    {"name": "AWS Cloud Backbone", "host": "52.94.0.1", "type": "Amazon Web Services"},
+    {"name": "Microsoft Azure Core", "host": "20.50.2.140", "type": "Microsoft Azure"},
+    {"name": "OpenDNS (Cisco)", "host": "208.67.222.222", "type": "Cisco Security"},
+    {"name": "Quad9 Threat Shield", "host": "9.9.9.9", "type": "Privacy / Security"}
 ]
 
 def probe_single_target(target):
