@@ -5,7 +5,7 @@ import platform
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
-from network_monitor import collect_metrics, verify_environment
+from network_monitor import collect_metrics, verify_environment, probe_multi_targets
 from diagnosis_engine import get_diagnosis, engine
 from database.db import (
     insert_diagnosis,
@@ -48,6 +48,15 @@ def get_system_status():
         "model_loaded": model_loaded,
         "model_type": type(engine.model.named_steps["classifier"]).__name__ if model_loaded else "Heuristic Rule Engine"
     }), 200
+
+
+@app.route("/api/multi-probe", methods=["GET"])
+def get_multi_probe():
+    """
+    Probes multiple global DNS and CDN target hosts concurrently.
+    """
+    results = probe_multi_targets()
+    return jsonify(results), 200
 
 
 @app.route("/api/metrics", methods=["GET"])

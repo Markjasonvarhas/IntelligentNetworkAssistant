@@ -12,6 +12,12 @@ export async function fetchLiveMetrics(host = '8.8.8.8', count = 10, speed = tru
   return res.json();
 }
 
+export async function fetchMultiProbe() {
+  const res = await fetch(`${API_BASE}/multi-probe`);
+  if (!res.ok) throw new Error('Failed to fetch multi probe');
+  return res.json();
+}
+
 export async function triggerLiveDiagnosis(host = '8.8.8.8', count = 10, speed = true) {
   const res = await fetch(`${API_BASE}/diagnose`, {
     method: 'POST',

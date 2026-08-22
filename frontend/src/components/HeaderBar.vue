@@ -15,7 +15,7 @@
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
+    <!-- Navigation Tabs (Clean Production NOC Style) -->
     <nav class="nav-tabs">
       <button 
         class="nav-tab" 
@@ -23,7 +23,7 @@
         @click="$emit('update:activeTab', 'dashboard')"
       >
         <span class="tab-indicator"></span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="7" height="7"/>
           <rect x="14" y="3" width="7" height="7"/>
           <rect x="14" y="14" width="7" height="7"/>
@@ -34,11 +34,25 @@
 
       <button 
         class="nav-tab" 
+        :class="{ active: activeTab === 'multiprobe' }"
+        @click="$emit('update:activeTab', 'multiprobe')"
+      >
+        <span class="tab-indicator"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+          <path d="M2 12h20"/>
+        </svg>
+        MULTI-TARGET PING
+      </button>
+
+      <button 
+        class="nav-tab" 
         :class="{ active: activeTab === 'simulation' }"
         @click="$emit('update:activeTab', 'simulation')"
       >
         <span class="tab-indicator"></span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
         </svg>
         FAULT SIMULATOR
@@ -50,35 +64,28 @@
         @click="$emit('update:activeTab', 'history')"
       >
         <span class="tab-indicator"></span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
-        DIAGNOSIS LOGS
-      </button>
-
-      <button 
-        class="nav-tab" 
-        :class="{ active: activeTab === 'evaluation' }"
-        @click="$emit('update:activeTab', 'evaluation')"
-      >
-        <span class="tab-indicator"></span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="20" x2="18" y2="10"/>
-          <line x1="12" y1="20" x2="12" y2="4"/>
-          <line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        RESEARCH EVALUATION
+        DIAGNOSIS AUDIT LOGS
       </button>
     </nav>
 
-    <!-- Header Controls & Telemetry Pills -->
+    <!-- Header Controls & Telemetry Switches -->
     <div class="header-controls">
-      <div class="status-pill">
-        <span class="pulse-dot" :style="{ color: systemStatus.online ? 'var(--neon-green)' : 'var(--crimson)' }"></span>
-        <span class="status-text">{{ systemStatus.online ? 'WSL2 ONLINE' : 'OFFLINE' }}</span>
-      </div>
+      <!-- Sentinel Auto-Pilot Switch -->
+      <button 
+        class="sentinel-btn"
+        :class="{ active: sentinelEnabled }"
+        @click="$emit('toggle-sentinel')"
+        title="Automated Continuous Sentinel Telemetry Polling"
+      >
+        <span class="pulse-dot" :style="{ color: sentinelEnabled ? 'var(--neon-green)' : 'var(--text-muted)' }"></span>
+        SENTINEL: {{ sentinelEnabled ? 'ACTIVE (10s)' : 'STANDBY' }}
+      </button>
 
+      <!-- Matrix Canvas Toggle -->
       <button 
         class="matrix-toggle-btn"
         :class="{ active: matrixEnabled }"
@@ -86,7 +93,7 @@
         title="Toggle Matrix Digital Rain Background"
       >
         <span class="matrix-symbol">λ</span>
-        MATRIX FX: {{ matrixEnabled ? 'ON' : 'OFF' }}
+        MATRIX: {{ matrixEnabled ? 'ON' : 'OFF' }}
       </button>
     </div>
   </header>
@@ -105,10 +112,14 @@ defineProps({
   matrixEnabled: {
     type: Boolean,
     default: true
+  },
+  sentinelEnabled: {
+    type: Boolean,
+    default: false
   }
 });
 
-defineEmits(['update:activeTab', 'toggle-matrix']);
+defineEmits(['update:activeTab', 'toggle-matrix', 'toggle-sentinel']);
 </script>
 
 <style scoped>
@@ -202,30 +213,40 @@ defineEmits(['update:activeTab', 'toggle-matrix']);
 .header-controls {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.75rem;
 }
 
-.status-pill {
+.sentinel-btn {
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.35rem 0.75rem;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.sentinel-btn.active {
+  color: var(--neon-green);
+  border-color: var(--neon-green);
+  background: rgba(0, 255, 136, 0.18);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
 }
 
 .matrix-toggle-btn {
-  background: rgba(0, 255, 136, 0.08);
-  color: var(--neon-green);
-  border: 1px solid rgba(0, 255, 136, 0.3);
+  background: rgba(0, 240, 255, 0.08);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 240, 255, 0.3);
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.35rem 0.75rem;
+  padding: 0.4rem 0.75rem;
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -235,8 +256,8 @@ defineEmits(['update:activeTab', 'toggle-matrix']);
 }
 
 .matrix-toggle-btn.active {
-  background: rgba(0, 255, 136, 0.18);
-  box-shadow: 0 0 10px rgba(0, 255, 136, 0.25);
+  background: rgba(0, 240, 255, 0.18);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
 }
 
 .matrix-symbol {

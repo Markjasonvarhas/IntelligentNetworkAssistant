@@ -5,6 +5,7 @@ import subprocess
 import re
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 
@@ -40,7 +41,7 @@ def test_ping(host="8.8.8.8", count=10, timeout=30):
     - Maximum Latency (ms)
     - Average Latency (ms)
     - Packet Loss (%)
-    - Jitter (ms) [Mean absolute consecutive latency difference]
+    - Jitter (ms) [RFC 3550 standard]
     
     Returns a dictionary containing all measured ping metrics.
     """
@@ -79,7 +80,7 @@ def test_ping(host="8.8.8.8", count=10, timeout=30):
             "jitter": None
         }
 
-    # Extract individual packet latencies (e.g. "time=24.5 ms" or "time<1 ms")
+    # Extract individual packet latencies
     latency_values = []
     matches = re.findall(r"time[=<]([\d.]+)\s*ms", output)
     for value in matches:
@@ -88,7 +89,7 @@ def test_ping(host="8.8.8.8", count=10, timeout=30):
         except ValueError:
             continue
 
-    # Extract packet loss percentage (e.g. "0% packet loss" or "10.0% packet loss")
+    # Extract packet loss percentage
     loss_match = re.search(r"(\d+(?:\.\d+)?)%\s*packet loss", output)
     if loss_match:
         packet_loss = float(loss_match.group(1))
@@ -109,7 +110,7 @@ def test_ping(host="8.8.8.8", count=10, timeout=30):
         maximum_latency = None
         average_latency = None
 
-    # Calculate Jitter (RFC 3550: Mean absolute difference between consecutive delays)
+    # Calculate Jitter (RFC 3550: Mean absolute consecutive differences)
     if len(latency_values) >= 2:
         diffs = [
             abs(latency_values[i] - latency_values[i - 1])
@@ -138,8 +139,6 @@ def test_ping(host="8.8.8.8", count=10, timeout=30):
 def test_throughput(timeout=25, retries=1):
     """
     Measures download throughput in Mbps by retrieving a 5MB payload from Cloudflare CDN.
-    Returns:
-        float: Throughput in Mbps (rounded to 2 decimal places), or None if test fails.
     """
     url = "https://speed.cloudflare.com/__down?bytes=5000000"
     headers = {
@@ -160,7 +159,6 @@ def test_throughput(timeout=25, retries=1):
                 return None
 
             data_size_bytes = len(data)
-            # Convert bytes to megabits: (bytes * 8) / 1,000,000
             data_size_megabits = (data_size_bytes * 8) / 1_000_000.0
             throughput = data_size_megabits / elapsed_time
 
@@ -170,7 +168,6 @@ def test_throughput(timeout=25, retries=1):
             if attempt < retries:
                 time.sleep(1)
                 continue
-            print(f"[!] Throughput measurement failed: {err}")
             return None
 
 
@@ -181,7 +178,6 @@ def test_throughput(timeout=25, retries=1):
 def collect_metrics(host="8.8.8.8", ping_count=10, test_speed=True):
     """
     Collects complete network performance metrics (Ping + Throughput).
-    Returns a validated dictionary with all 6 independent performance variables.
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     ping_res = test_ping(host=host, count=ping_count)
@@ -190,7 +186,6 @@ def collect_metrics(host="8.8.8.8", ping_count=10, test_speed=True):
     if test_speed:
         throughput = test_throughput()
 
-    # Data validation: check if sample is valid for machine learning
     is_valid = True
     validation_error = None
 
@@ -204,7 +199,7 @@ def collect_metrics(host="8.8.8.8", ping_count=10, test_speed=True):
         is_valid = False
         validation_error = "Throughput test failed to complete."
 
-    return {
+    metrics = {
         "timestamp": timestamp,
         "host": host,
         "minimum_latency": ping_res["minimum_latency"],
@@ -218,6 +213,129 @@ def collect_metrics(host="8.8.8.8", ping_count=10, test_speed=True):
         "validation_error": validation_error
     }
 
+    # Add Network Health & Experience Scores
+    metrics["health_scores"] = compute_quality_scores(metrics)
+    return metrics
+
+
+# ==============================================================================
+# ADVANCED QOS & USER EXPERIENCE (MOS) HEALTH SCORING
+# ==============================================================================
+
+def compute_quality_scores(metrics):
+    """
+    Calculates Network Health Index (0-100), Mean Opinion Score (MOS 1.0-4.5),
+    and Experience Tier ratings for Gaming, Video Streaming, and VoIP calls.
+    """
+    avg_lat = metrics.get("average_latency") or 30.0
+    loss = metrics.get("packet_loss") or 0.0
+    jitter = metrics.get("jitter") or 2.0
+    tp = metrics.get("throughput") or 50.0
+
+    # 1. ITU-T E-Model based MOS calculation
+    # R factor: Transmission Rating Factor (0-100)
+    effective_lat = avg_lat + (jitter * 2.0)
+    r_factor = 93.2 - (effective_lat * 0.024) - (loss * 2.5)
+    r_factor = max(0.0, min(100.0, r_factor))
+
+    if r_factor < 0:
+        mos = 1.0
+    elif r_factor > 100:
+        mos = 4.5
+    else:
+        mos = 1.0 + (0.035 * r_factor) + (r_factor * (r_factor - 60.0) * (100.0 - r_factor) * 7.0e-6)
+    mos = round(max(1.0, min(4.5, mos)), 2)
+
+    # 2. Overall Health Index (0 - 100)
+    lat_score = max(0, 100 - (avg_lat * 0.4))
+    loss_score = max(0, 100 - (loss * 10.0))
+    jit_score = max(0, 100 - (jitter * 4.0))
+    tp_score = min(100, tp * 1.5)
+    overall_health = round((lat_score * 0.35) + (loss_score * 0.35) + (jit_score * 0.15) + (tp_score * 0.15), 1)
+    overall_health = max(0.0, min(100.0, overall_health))
+
+    # 3. Gaming Tier
+    if avg_lat < 35 and jitter < 5 and loss == 0:
+        gaming_grade = "S Tier (Ultra Responsive)"
+        gaming_status = "optimal"
+    elif avg_lat < 70 and jitter < 10 and loss < 1:
+        gaming_grade = "A Tier (Competitive Ready)"
+        gaming_status = "good"
+    elif avg_lat < 120 and loss < 3:
+        gaming_grade = "B Tier (Casual Playable)"
+        gaming_status = "fair"
+    else:
+        gaming_grade = "D Tier (High Latency / Lag)"
+        gaming_status = "poor"
+
+    # 4. 4K Streaming Tier
+    if tp >= 25.0 and loss < 1.0:
+        streaming_grade = "4K UHD (Buffer-Free)"
+        streaming_status = "optimal"
+    elif tp >= 10.0 and loss < 3.0:
+        streaming_grade = "1080p FHD (Smooth)"
+        streaming_status = "good"
+    elif tp >= 4.0:
+        streaming_grade = "720p HD (Standard)"
+        streaming_status = "fair"
+    else:
+        streaming_grade = "Buffering Stutter"
+        streaming_status = "poor"
+
+    # 5. Video Calling / VoIP Tier
+    if mos >= 4.2:
+        voip_grade = "HD Voice (Lossless)"
+        voip_status = "optimal"
+    elif mos >= 3.8:
+        voip_grade = "Good Clarity"
+        voip_status = "good"
+    elif mos >= 3.2:
+        voip_grade = "Acceptable"
+        voip_status = "fair"
+    else:
+        voip_grade = "Choppy Voice / Delay"
+        voip_status = "poor"
+
+    return {
+        "overall_health_score": overall_health,
+        "mos_score": mos,
+        "gaming": { "grade": gaming_grade, "status": gaming_status },
+        "streaming": { "grade": streaming_grade, "status": streaming_status },
+        "voip": { "grade": voip_grade, "status": voip_status }
+    }
+
+
+# ==============================================================================
+# MULTI-TARGET CONCURRENT PROBE MATRIX
+# ==============================================================================
+
+DEFAULT_PROBE_TARGETS = [
+    {"name": "Google DNS", "host": "8.8.8.8", "type": "Global DNS"},
+    {"name": "Cloudflare DNS", "host": "1.1.1.1", "type": "Global CDN / DNS"},
+    {"name": "OpenDNS (Cisco)", "host": "208.67.222.222", "type": "Security DNS"},
+    {"name": "Quad9 Secure", "host": "9.9.9.9", "type": "Privacy DNS"}
+]
+
+def probe_single_target(target):
+    """Fast probe with 3 packets."""
+    res = test_ping(host=target["host"], count=3, timeout=6)
+    return {
+        "name": target["name"],
+        "host": target["host"],
+        "type": target["type"],
+        "latency": res["average_latency"],
+        "loss": res["packet_loss"],
+        "jitter": res["jitter"],
+        "status": "online" if res["average_latency"] is not None else "offline"
+    }
+
+def probe_multi_targets(targets=None):
+    """Probes multiple network nodes concurrently in threads."""
+    target_list = targets or DEFAULT_PROBE_TARGETS
+    with ThreadPoolExecutor(max_workers=len(target_list)) as executor:
+        results = list(executor.map(probe_single_target, target_list))
+    return results
+
 
 # ==============================================================================
 # CLI EXECUTION ENTRYPOINT
@@ -226,49 +344,18 @@ def collect_metrics(host="8.8.8.8", ping_count=10, test_speed=True):
 def main():
     verify_environment()
     host = "8.8.8.8"
-    ping_count = 10
+    metrics = collect_metrics(host=host, ping_count=10, test_speed=True)
 
     print("\n" + "=" * 55)
     print("      INTELLIGENT NETWORK MONITORING TOOL")
     print("=" * 55)
     print(f" Target Host     : {host}")
-    print(f" Ping Count      : {ping_count} packets")
-    print(f" Throughput Test : Enabled (5 MB Cloudflare payload)")
-    print("-" * 55)
-    print(" Running diagnostic tests, please wait...")
-
-    metrics = collect_metrics(host=host, ping_count=ping_count, test_speed=True)
-
-    print("\n" + "-" * 55)
-    print(" NETWORK PERFORMANCE METRICS")
-    print("-" * 55)
-    print(f" Timestamp        : {metrics['timestamp']}")
-    print(f" Target Host      : {metrics['host']}")
-    
-    if metrics['minimum_latency'] is not None:
-        print(f" Minimum Latency  : {metrics['minimum_latency']:.2f} ms")
-        print(f" Maximum Latency  : {metrics['maximum_latency']:.2f} ms")
-        print(f" Average Latency  : {metrics['average_latency']:.2f} ms")
-    else:
-        print(f" Latency          : [FAILED] Unable to measure")
-
-    print(f" Packet Loss      : {metrics['packet_loss']:.2f} %")
-
-    if metrics['jitter'] is not None:
-        print(f" Jitter           : {metrics['jitter']:.2f} ms")
-    else:
-        print(f" Jitter           : [FAILED] Unable to calculate")
-
-    if metrics['throughput'] is not None:
-        print(f" Throughput       : {metrics['throughput']:.2f} Mbps")
-    else:
-        print(f" Throughput       : [FAILED] Unable to measure")
-
-    print("-" * 55)
-    if metrics["is_valid"]:
-        print(" Sample Status    : [VALID] Ready for ML dataset.")
-    else:
-        print(f" Sample Status    : [INVALID] Reason: {metrics['validation_error']}")
+    print(f" Avg Latency     : {metrics['average_latency']} ms")
+    print(f" Packet Loss     : {metrics['packet_loss']} %")
+    print(f" Jitter          : {metrics['jitter']} ms")
+    print(f" Throughput      : {metrics['throughput']} Mbps")
+    print(f" Health Score    : {metrics['health_scores']['overall_health_score']} / 100")
+    print(f" VoIP MOS Index  : {metrics['health_scores']['mos_score']} / 4.5")
     print("=" * 55 + "\n")
 
 
