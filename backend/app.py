@@ -32,6 +32,8 @@ METRICS_JSON_PATH = os.path.join(BACKEND_DIR, "model", "model_metrics.json")
 # API ENDPOINTS
 # ==============================================================================
 
+import urllib.request
+
 @app.route("/api/status", methods=["GET"])
 def get_system_status():
     """
@@ -48,6 +50,53 @@ def get_system_status():
         "model_loaded": model_loaded,
         "model_type": type(engine.model.named_steps["classifier"]).__name__ if model_loaded else "Heuristic Rule Engine"
     }), 200
+
+
+@app.route("/api/client-network-info", methods=["GET"])
+def get_client_network_info():
+    """
+    Automatically detects the visitor's connected network, Public IP, ISP, ASN, and City/Country.
+    """
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
+    else:
+        client_ip = request.remote_addr or "127.0.0.1"
+
+    # For local/private ranges, detect the active public egress IP
+    is_private = client_ip in ["127.0.0.1", "localhost", "::1"] or client_ip.startswith("192.168.") or client_ip.startswith("10.") or client_ip.startswith("172.")
+    lookup_url = "https://ipapi.co/json/" if is_private else f"https://ipapi.co/{client_ip}/json/"
+
+    try:
+        req = urllib.request.Request(
+            lookup_url,
+            headers={"User-Agent": "Mozilla/5.0 IntelligentNetworkAssistant/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            geo_data = json.loads(resp.read().decode())
+            return jsonify({
+                "ip": geo_data.get("ip", client_ip),
+                "isp": geo_data.get("org") or geo_data.get("asn", "Local Network"),
+                "city": geo_data.get("city", "Local City"),
+                "region": geo_data.get("region", ""),
+                "country": geo_data.get("country_name", "Local"),
+                "country_code": geo_data.get("country_code", "LOC"),
+                "asn": geo_data.get("asn", "Private ASN"),
+                "timezone": geo_data.get("timezone", "UTC"),
+                "is_local": is_private
+            }), 200
+    except Exception:
+        return jsonify({
+            "ip": client_ip,
+            "isp": "Local Gateway / Wi-Fi Network",
+            "city": "Local Network",
+            "region": "",
+            "country": "Local",
+            "country_code": "LOC",
+            "asn": "Private LAN",
+            "timezone": "UTC",
+            "is_local": True
+        }), 200
 
 
 @app.route("/api/realtime-stream", methods=["GET"])

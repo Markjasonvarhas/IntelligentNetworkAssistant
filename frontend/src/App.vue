@@ -19,6 +19,9 @@
       <main class="main-content">
         <!-- View 1: Live Telemetry & AI Diagnosis Dashboard -->
         <section v-if="activeTab === 'dashboard'" class="tab-view">
+          <!-- Automatic Visitor Network Detection Banner -->
+          <ClientNetworkBanner :networkInfo="visitorNetworkInfo" />
+
           <!-- Real-Time HUD Metric Cards -->
           <MetricCards :metrics="latestMetrics" />
 
@@ -76,6 +79,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import MatrixRain from './components/MatrixRain.vue';
 import HeaderBar from './components/HeaderBar.vue';
+import ClientNetworkBanner from './components/ClientNetworkBanner.vue';
 import MetricCards from './components/MetricCards.vue';
 import QualityScoreCard from './components/QualityScoreCard.vue';
 import DiagnosisPanel from './components/DiagnosisPanel.vue';
@@ -87,6 +91,7 @@ import HistoryView from './components/HistoryView.vue';
 
 import {
   fetchSystemStatus,
+  fetchClientNetworkInfo,
   fetchTelemetryStream,
   fetchRealtimeStream,
   triggerLiveDiagnosis
@@ -103,6 +108,16 @@ const systemStatus = ref({
   is_wsl_linux: true,
   model_loaded: true,
   model_type: 'DecisionTreeClassifier'
+});
+
+const visitorNetworkInfo = ref({
+  ip: 'Detecting...',
+  isp: 'Detecting ISP / Carrier...',
+  city: 'Local Area',
+  region: '',
+  country: 'Detecting Location',
+  country_code: 'LOC',
+  asn: 'Resolving ASN...'
 });
 
 const defaultHealthScores = {
@@ -260,8 +275,26 @@ async function runManualScan(host = '8.8.8.8', speed = true) {
   }
 }
 
+async function loadVisitorNetwork() {
+  try {
+    const info = await fetchClientNetworkInfo();
+    if (info && info.ip) {
+      visitorNetworkInfo.value = info;
+    }
+  } catch (e) {
+    visitorNetworkInfo.value = {
+      ip: '127.0.0.1',
+      isp: 'Local LAN / Wi-Fi Gateway',
+      city: 'Local Network',
+      country: 'Localhost',
+      asn: 'Private Subnet'
+    };
+  }
+}
+
 onMounted(() => {
   checkStatus();
+  loadVisitorNetwork();
   loadTelemetry();
   // Rapid 1.5s sub-second real-time streaming probe
   realtimeStreamTimer = setInterval(streamLiveProbe, 1500);

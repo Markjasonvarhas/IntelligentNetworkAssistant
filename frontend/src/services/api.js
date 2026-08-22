@@ -6,6 +6,12 @@ export async function fetchSystemStatus() {
   return res.json();
 }
 
+export async function fetchClientNetworkInfo() {
+  const res = await fetch(`${API_BASE}/client-network-info`);
+  if (!res.ok) throw new Error('Failed to fetch client network info');
+  return res.json();
+}
+
 export async function fetchLiveMetrics(host = '8.8.8.8', count = 10, speed = true) {
   const res = await fetch(`${API_BASE}/metrics?host=${encodeURIComponent(host)}&count=${count}&speed=${speed}`);
   if (!res.ok) throw new Error('Failed to fetch metrics');
