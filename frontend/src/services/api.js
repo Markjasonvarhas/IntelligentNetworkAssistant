@@ -30,6 +30,18 @@ export async function fetchMultiProbe() {
   return res.json();
 }
 
+export async function fetchTraceroute(target = '8.8.8.8', maxHops = 12) {
+  const res = await fetch(`${API_BASE}/traceroute?target=${encodeURIComponent(target)}&max_hops=${maxHops}`);
+  if (!res.ok) throw new Error('Failed to run traceroute');
+  return res.json();
+}
+
+export async function fetchDnsBenchmark(domain = 'google.com') {
+  const res = await fetch(`${API_BASE}/dns-benchmark?domain=${encodeURIComponent(domain)}`);
+  if (!res.ok) throw new Error('Failed to run DNS benchmark');
+  return res.json();
+}
+
 export async function triggerLiveDiagnosis(host = '8.8.8.8', count = 10, speed = true) {
   const res = await fetch(`${API_BASE}/diagnose`, {
     method: 'POST',

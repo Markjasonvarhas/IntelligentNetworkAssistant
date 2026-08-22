@@ -47,17 +47,32 @@
           <TelemetryCharts :telemetryData="telemetryStream" />
         </section>
 
-        <!-- View 2: Multi-Target Ping Matrix -->
+        <!-- View 2: Visual Hop-by-Hop Traceroute & Bottleneck Pinpointer -->
+        <section v-else-if="activeTab === 'traceroute'" class="tab-view">
+          <VisualTraceroute />
+        </section>
+
+        <!-- View 3: DNS Speed Benchmark & 1-Click Optimizer -->
+        <section v-else-if="activeTab === 'dns'" class="tab-view">
+          <DnsBenchmark />
+        </section>
+
+        <!-- View 4: Autonomous Network Self-Healing Toolkit -->
+        <section v-else-if="activeTab === 'selfhealing'" class="tab-view">
+          <NetworkSelfHealing />
+        </section>
+
+        <!-- View 5: Multi-Target Ping Matrix -->
         <section v-else-if="activeTab === 'multiprobe'" class="tab-view">
           <MultiTargetMatrix />
         </section>
 
-        <!-- View 3: Fault Simulation Sandbox -->
+        <!-- View 6: Fault Simulation Sandbox -->
         <section v-else-if="activeTab === 'simulation'" class="tab-view">
           <SimulationSandbox />
         </section>
 
-        <!-- View 4: Diagnostic Logs & History Audit -->
+        <!-- View 7: Diagnostic Logs & History Audit -->
         <section v-else-if="activeTab === 'history'" class="tab-view">
           <HistoryView />
         </section>
@@ -86,6 +101,9 @@ import QualityScoreCard from './components/QualityScoreCard.vue';
 import DiagnosisPanel from './components/DiagnosisPanel.vue';
 import PacketSequenceView from './components/PacketSequenceView.vue';
 import TelemetryCharts from './components/TelemetryCharts.vue';
+import VisualTraceroute from './components/VisualTraceroute.vue';
+import DnsBenchmark from './components/DnsBenchmark.vue';
+import NetworkSelfHealing from './components/NetworkSelfHealing.vue';
 import MultiTargetMatrix from './components/MultiTargetMatrix.vue';
 import SimulationSandbox from './components/SimulationSandbox.vue';
 import HistoryView from './components/HistoryView.vue';

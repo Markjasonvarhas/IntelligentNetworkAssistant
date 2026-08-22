@@ -38,6 +38,19 @@
           <span v-else class="spinner-icon"></span>
           {{ scanning ? 'ANALYZING...' : 'RUN AI DIAGNOSIS' }}
         </button>
+
+        <button 
+          class="cyber-btn btn-export" 
+          @click="exportAuditReport"
+          title="Export Formal Diagnostic Audit Report (Markdown)"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          EXPORT AUDIT REPORT
+        </button>
       </div>
     </div>
 
@@ -183,6 +196,46 @@ const dashOffset = computed(() => {
 
 function handleTriggerScan() {
   emit('trigger-scan', targetHost.value);
+}
+
+function exportAuditReport() {
+  const ts = new Date().toISOString();
+  const d = props.diagnosis || {};
+  const report = `# INTELLIGENT NETWORK DIAGNOSTIC AUDIT REPORT
+Generated At: ${ts}
+Target Probed: ${targetHost.value}
+
+## 1. EXECUTIVE DIAGNOSTIC CLASSIFICATION
+- Primary Condition: ${(d.fault || 'normal').toUpperCase()}
+- Classification Title: ${d.title || 'Healthy Network Condition'}
+- Severity Level: ${(d.severity || 'healthy').toUpperCase()}
+- AI Confidence Level: ${Math.round((d.confidence || 0.95) * 100)}%
+- Statistical Engine: Dual-Vector Calibrated Random Forest & RFC Safety Envelope
+
+## 2. DETAILED SUMMARY
+${d.description || 'System operating under nominal parameters.'}
+
+## 3. ROOT CAUSE ANALYSIS
+${(d.possible_causes || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
+
+## 4. ACTIONABLE REMEDIATION RECOMMENDATIONS
+${(d.recommendations || []).map((r, i) => `[ ] ${r}`).join('\n')}
+
+## 5. TELEMETRY HIGHLIGHTS
+${(d.metric_highlights || []).map(m => `- ${m}`).join('\n')}
+
+---
+*Report generated automatically by Intelligent Network Troubleshooting Assistant (NOC AI)*
+`;
+
+  const blob = new Blob([report], { type: 'text/markdown;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `network_diagnostic_audit_report_${Date.now()}.md`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 </script>
 

@@ -5,7 +5,14 @@ import platform
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
-from network_monitor import collect_metrics, verify_environment, probe_multi_targets, fast_live_probe
+from network_monitor import (
+    collect_metrics,
+    verify_environment,
+    probe_multi_targets,
+    fast_live_probe,
+    run_traceroute,
+    run_dns_benchmark
+)
 from diagnosis_engine import get_diagnosis, engine
 from database.db import (
     insert_diagnosis,
@@ -202,6 +209,27 @@ def get_multi_probe():
     """
     results = probe_multi_targets()
     return jsonify(results), 200
+
+
+@app.route("/api/traceroute", methods=["GET"])
+def get_visual_traceroute():
+    """
+    Performs hop-by-hop visual traceroute and pins the exact bottleneck hop.
+    """
+    target = request.args.get("target", "8.8.8.8")
+    max_hops = int(request.args.get("max_hops", 12))
+    res = run_traceroute(target=target, max_hops=max_hops)
+    return jsonify(res), 200
+
+
+@app.route("/api/dns-benchmark", methods=["GET"])
+def get_dns_benchmark():
+    """
+    Benchmarks DNS resolution latency across top 5 global resolvers and generates 1-click optimization scripts.
+    """
+    domain = request.args.get("domain", "google.com")
+    res = run_dns_benchmark(domain=domain)
+    return jsonify(res), 200
 
 
 @app.route("/api/metrics", methods=["GET"])
