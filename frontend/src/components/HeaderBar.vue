@@ -74,16 +74,34 @@
 
     <!-- Header Controls & Telemetry Switches -->
     <div class="header-controls">
-      <!-- Sentinel Auto-Pilot Switch -->
-      <button 
-        class="sentinel-btn"
-        :class="{ active: sentinelEnabled }"
-        @click="$emit('toggle-sentinel')"
-        title="Automated Continuous Sentinel Telemetry Polling"
-      >
-        <span class="pulse-dot" :style="{ color: sentinelEnabled ? 'var(--neon-green)' : 'var(--text-muted)' }"></span>
-        SENTINEL: {{ sentinelEnabled ? 'ACTIVE (10s)' : 'STANDBY' }}
-      </button>
+      <!-- Auto-Refresh Interval Selector -->
+      <div class="refresh-pill-box">
+        <span class="pulse-dot dot-refresh"></span>
+        <span class="refresh-label">AUTO-REFRESH:</span>
+        <div class="refresh-options">
+          <button 
+            class="refresh-btn" 
+            :class="{ active: refreshInterval === 3 }" 
+            @click="$emit('update:refreshInterval', 3)"
+          >3s</button>
+          <button 
+            class="refresh-btn" 
+            :class="{ active: refreshInterval === 5 }" 
+            @click="$emit('update:refreshInterval', 5)"
+          >5s</button>
+          <button 
+            class="refresh-btn" 
+            :class="{ active: refreshInterval === 10 }" 
+            @click="$emit('update:refreshInterval', 10)"
+          >10s</button>
+          <button 
+            class="refresh-btn" 
+            :class="{ active: refreshInterval === 0 }" 
+            @click="$emit('update:refreshInterval', 0)"
+          >PAUSE</button>
+        </div>
+        <span v-if="refreshInterval > 0" class="countdown-badge">{{ countdown }}s</span>
+      </div>
 
       <!-- Matrix Canvas Toggle -->
       <button 
@@ -113,13 +131,17 @@ defineProps({
     type: Boolean,
     default: true
   },
-  sentinelEnabled: {
-    type: Boolean,
-    default: false
+  refreshInterval: {
+    type: Number,
+    default: 5
+  },
+  countdown: {
+    type: Number,
+    default: 5
   }
 });
 
-defineEmits(['update:activeTab', 'toggle-matrix', 'toggle-sentinel']);
+defineEmits(['update:activeTab', 'toggle-matrix', 'update:refreshInterval']);
 </script>
 
 <style scoped>
@@ -214,29 +236,70 @@ defineEmits(['update:activeTab', 'toggle-matrix', 'toggle-sentinel']);
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.sentinel-btn {
-  background: rgba(0, 255, 136, 0.08);
-  border: 1px solid rgba(0, 255, 136, 0.25);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.4rem 0.75rem;
-  border-radius: 4px;
-  cursor: pointer;
+.refresh-pill-box {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
+  background: rgba(6, 9, 19, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.dot-refresh {
+  background: var(--neon-green) !important;
+  box-shadow: 0 0 8px var(--neon-green) !important;
+}
+
+.refresh-label {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.5px;
+}
+
+.refresh-options {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.refresh-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.sentinel-btn.active {
+.refresh-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--cyan);
+}
+
+.refresh-btn.active {
+  background: rgba(0, 240, 255, 0.25);
+  color: var(--cyan);
+  border-color: var(--cyan);
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+}
+
+.countdown-badge {
+  background: rgba(0, 255, 136, 0.15);
+  border: 1px solid rgba(0, 255, 136, 0.3);
   color: var(--neon-green);
-  border-color: var(--neon-green);
-  background: rgba(0, 255, 136, 0.18);
-  box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
 }
 
 .matrix-toggle-btn {
