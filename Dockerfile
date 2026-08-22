@@ -43,5 +43,5 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 10000
 
-# Start Production Web Server with Gunicorn
-CMD ["gunicorn", "--chdir", "backend", "--bind", "0.0.0.0:10000", "app:app"]
+# Start Production Web Server with Gunicorn (binds dynamically to Render's $PORT)
+CMD ["sh", "-c", "gunicorn --chdir backend --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 4 --timeout 120 app:app"]
