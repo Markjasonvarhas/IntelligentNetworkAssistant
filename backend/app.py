@@ -11,7 +11,9 @@ from network_monitor import (
     probe_multi_targets,
     fast_live_probe,
     run_traceroute,
-    run_dns_benchmark
+    run_dns_benchmark,
+    probe_critical_ports,
+    test_path_mtu
 )
 from diagnosis_engine import get_diagnosis, engine
 from database.db import (
@@ -229,6 +231,26 @@ def get_dns_benchmark():
     """
     domain = request.args.get("domain", "google.com")
     res = run_dns_benchmark(domain=domain)
+    return jsonify(res), 200
+
+
+@app.route("/api/port-scan", methods=["GET"])
+def get_port_scan():
+    """
+    Probes critical TCP ports (HTTPS 443, HTTP 80, DNS 53, SSH 22, DoT 853) and measures TLS handshake latency.
+    """
+    host = request.args.get("host", "8.8.8.8")
+    res = probe_critical_ports(host=host)
+    return jsonify(res), 200
+
+
+@app.route("/api/mtu-test", methods=["GET"])
+def get_path_mtu_test():
+    """
+    Discovers optimal Path MTU and tests for packet fragmentation.
+    """
+    host = request.args.get("host", "8.8.8.8")
+    res = test_path_mtu(host=host)
     return jsonify(res), 200
 
 

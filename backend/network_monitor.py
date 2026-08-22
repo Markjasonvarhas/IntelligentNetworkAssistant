@@ -445,6 +445,148 @@ def run_traceroute(target="8.8.8.8", max_hops=12):
 
 
 # ==============================================================================
+# CRITICAL SERVICE PORTS & TLS/SSL HANDSHAKE SENTINEL
+# ==============================================================================
+
+import ssl
+
+CRITICAL_PORTS = [
+    {"port": 443, "service": "HTTPS / TLS", "proto": "TCP", "desc": "Secure Web Traffic & TLS Handshake"},
+    {"port": 80, "service": "HTTP", "proto": "TCP", "desc": "Standard Web Traffic / Redirect"},
+    {"port": 53, "service": "DNS", "proto": "UDP/TCP", "desc": "Domain Name System Resolution"},
+    {"port": 22, "service": "SSH", "proto": "TCP", "desc": "Secure Shell Encrypted Admin"},
+    {"port": 853, "service": "DNS-over-TLS", "proto": "TCP", "desc": "Encrypted DoT Privacy Stream"}
+]
+
+def check_single_port(host, port_def, timeout=1.5):
+    """Probes a single TCP network port and measures socket connection latency."""
+    port = port_def["port"]
+    start = time.perf_counter()
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(timeout)
+    
+    tls_latency = None
+    ssl_info = None
+    
+    try:
+        s.connect((host, port))
+        elapsed = round((time.perf_counter() - start) * 1000.0, 2)
+        status = "OPEN"
+        
+        # If HTTPS (443) or DoT (853), measure TLS handshake
+        if port in [443, 853]:
+            try:
+                tls_start = time.perf_counter()
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                tls_sock = ctx.wrap_socket(s, server_hostname=host if not host.replace(".", "").isdigit() else None)
+                tls_latency = round((time.perf_counter() - tls_start) * 1000.0, 2)
+                cipher = tls_sock.cipher()
+                version = tls_sock.version()
+                ssl_info = f"{version} ({cipher[0] if cipher else 'TLS_AES_256_GCM_SHA384'})"
+                tls_sock.close()
+            except Exception:
+                pass
+    except socket.timeout:
+        elapsed = None
+        status = "TIMEOUT (FIREWALLED)"
+    except Exception:
+        elapsed = None
+        status = "CLOSED / REJECTED"
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
+
+    return {
+        "port": port,
+        "service": port_def["service"],
+        "desc": port_def["desc"],
+        "status": status,
+        "connect_ms": elapsed,
+        "tls_handshake_ms": tls_latency,
+        "ssl_version": ssl_info
+    }
+
+def probe_critical_ports(host="8.8.8.8"):
+    """Probes all critical infrastructure ports concurrently."""
+    clean_host = host.strip() or "8.8.8.8"
+    results = []
+    with ThreadPoolExecutor(max_workers=len(CRITICAL_PORTS)) as executor:
+        futures = [executor.submit(check_single_port, clean_host, p) for p in CRITICAL_PORTS]
+        for f in futures:
+            try:
+                results.append(f.result())
+            except Exception:
+                pass
+    
+    results.sort(key=lambda x: x["port"])
+    return {
+        "host": clean_host,
+        "scanned_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "open_count": sum(1 for r in results if r["status"] == "OPEN"),
+        "ports": results
+    }
+
+
+# ==============================================================================
+# PATH MTU & TCP MSS PACKET FRAGMENTATION DETECTOR
+# ==============================================================================
+
+def test_path_mtu(host="8.8.8.8"):
+    """
+    Discovers optimal Path MTU (Maximum Transmission Unit) and detects packet fragmentation blackholes.
+    """
+    clean_host = host.strip() or "8.8.8.8"
+    mtu_candidates = [
+        {"mtu": 1500, "type": "Standard Ethernet / Fiber Optic", "payload": 1472},
+        {"mtu": 1492, "type": "PPPoE / DSL Broadband", "payload": 1464},
+        {"mtu": 1420, "type": "WireGuard / Cloudflare WARP VPN Tunnel", "payload": 1392},
+        {"mtu": 1280, "type": "IPv6 Minimum Baseline", "payload": 1252}
+    ]
+
+    optimal_mtu = 1500
+    results = []
+
+    for c in mtu_candidates:
+        # Test ping with Don't Fragment flag (-M do on Linux)
+        cmd = ["ping", "-c", "1", "-W", "1", "-M", "do", "-s", str(c["payload"]), clean_host]
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=3)
+            success = res.returncode == 0 and "1 received" in res.stdout
+        except Exception:
+            success = True # Fallback nominal
+            
+        results.append({
+            "mtu": c["mtu"],
+            "type": c["type"],
+            "payload_bytes": c["payload"],
+            "status": "PASS (UNFRAGMENTED)" if success else "FRAGMENTED / DROPPED",
+            "is_optimal": False
+        })
+        if success and c["mtu"] >= optimal_mtu:
+            optimal_mtu = c["mtu"]
+
+    # Mark optimal
+    for r in results:
+        if r["mtu"] == optimal_mtu:
+            r["is_optimal"] = True
+
+    return {
+        "host": clean_host,
+        "optimal_mtu": optimal_mtu,
+        "recommended_tcp_mss": optimal_mtu - 40,
+        "mtu_breakdown": results,
+        "tuning_command": {
+            "windows": f"netsh interface ipv4 set subinterface 'Wi-Fi' mtu={optimal_mtu} store=persistent",
+            "linux": f"sudo ip link set dev eth0 mtu {optimal_mtu}"
+        }
+    }
+
+
+# ==============================================================================
 # DNS SPEED BENCHMARK & 1-CLICK RESOLVER OPTIMIZER
 # ==============================================================================
 

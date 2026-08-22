@@ -51,6 +51,7 @@
         <section v-else-if="activeTab === 'topology'" class="tab-view multi-module-view">
           <VisualTraceroute />
           <MultiTargetMatrix />
+          <ServicePortSentinel />
         </section>
 
         <!-- Workspace 3: Resolver & Autonomous Self-Healing Suite -->
@@ -90,9 +91,10 @@ import DiagnosisPanel from './components/DiagnosisPanel.vue';
 import PacketSequenceView from './components/PacketSequenceView.vue';
 import TelemetryCharts from './components/TelemetryCharts.vue';
 import VisualTraceroute from './components/VisualTraceroute.vue';
+import MultiTargetMatrix from './components/MultiTargetMatrix.vue';
+import ServicePortSentinel from './components/ServicePortSentinel.vue';
 import DnsBenchmark from './components/DnsBenchmark.vue';
 import NetworkSelfHealing from './components/NetworkSelfHealing.vue';
-import MultiTargetMatrix from './components/MultiTargetMatrix.vue';
 import SimulationSandbox from './components/SimulationSandbox.vue';
 import HistoryView from './components/HistoryView.vue';
 

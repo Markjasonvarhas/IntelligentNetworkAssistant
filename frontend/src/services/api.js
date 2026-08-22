@@ -42,6 +42,18 @@ export async function fetchDnsBenchmark(domain = 'google.com') {
   return res.json();
 }
 
+export async function fetchPortScan(host = '8.8.8.8') {
+  const res = await fetch(`${API_BASE}/port-scan?host=${encodeURIComponent(host)}`);
+  if (!res.ok) throw new Error('Failed to run port scan');
+  return res.json();
+}
+
+export async function fetchPathMtu(host = '8.8.8.8') {
+  const res = await fetch(`${API_BASE}/mtu-test?host=${encodeURIComponent(host)}`);
+  if (!res.ok) throw new Error('Failed to run MTU discovery');
+  return res.json();
+}
+
 export async function triggerLiveDiagnosis(host = '8.8.8.8', count = 10, speed = true) {
   const res = await fetch(`${API_BASE}/diagnose`, {
     method: 'POST',

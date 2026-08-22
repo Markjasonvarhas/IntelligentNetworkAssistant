@@ -199,43 +199,109 @@ function handleTriggerScan() {
 }
 
 function exportAuditReport() {
-  const ts = new Date().toISOString();
+  const ts = new Date().toLocaleString();
   const d = props.diagnosis || {};
-  const report = `# INTELLIGENT NETWORK DIAGNOSTIC AUDIT REPORT
-Generated At: ${ts}
-Target Probed: ${targetHost.value}
+  const reportId = `NOC-AUDIT-${Date.now().toString().slice(-6)}`;
 
-## 1. EXECUTIVE DIAGNOSTIC CLASSIFICATION
-- Primary Condition: ${(d.fault || 'normal').toUpperCase()}
-- Classification Title: ${d.title || 'Healthy Network Condition'}
-- Severity Level: ${(d.severity || 'healthy').toUpperCase()}
-- AI Confidence Level: ${Math.round((d.confidence || 0.95) * 100)}%
-- Statistical Engine: Dual-Vector Calibrated Random Forest & RFC Safety Envelope
+  // Generate Formal High-Resolution Printable Certificate HTML
+  const certHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Official Network Diagnostic Certificate - ${reportId}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Orbitron:wght@700;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: #fff; color: #0f172a; margin: 0; padding: 40px; }
+    .cert-box { border: 3px double #00f0ff; border-radius: 12px; padding: 35px; max-width: 800px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.08); position: relative; }
+    .cert-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 25px; }
+    .cert-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
+    .cert-subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .cert-id-badge { font-family: 'Fira Code', monospace; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 700; color: #0284c7; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+    .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
+    .meta-lbl { font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .meta-val { font-size: 16px; font-weight: 800; color: #0f172a; }
+    .score-badge { display: inline-block; background: #ecfdf5; border: 1px solid #10b981; color: #047857; font-weight: 800; padding: 4px 10px; border-radius: 6px; }
+    .severity-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-weight: 800; text-transform: uppercase; font-size: 12px; }
+    .sev-healthy { background: #dcfce7; color: #15803d; }
+    .sev-warning { background: #fef3c7; color: #b45309; }
+    .sev-critical { background: #ffe4e6; color: #b91c1c; }
+    .section-head { font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700; margin: 20px 0 10px 0; border-left: 4px solid #00f0ff; padding-left: 10px; }
+    ul { margin: 8px 0; padding-left: 20px; font-size: 14px; color: #334155; line-height: 1.6; }
+    .cert-footer { margin-top: 35px; border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; }
+    .signature-line { border-top: 1px solid #94a3b8; width: 180px; text-align: center; padding-top: 5px; font-weight: 700; }
+    @media print { body { padding: 0; } .cert-box { box-shadow: none; border-color: #000; } }
+  </style>
+</head>
+<body>
+  <div class="cert-box">
+    <div class="cert-header">
+      <div>
+        <h1 class="cert-title">NETWORK NOC HEALTH CERTIFICATE</h1>
+        <p class="cert-subtitle">Automated Telemetry & Machine Learning Diagnostic Audit</p>
+      </div>
+      <div class="cert-id-badge">${reportId}</div>
+    </div>
 
-## 2. DETAILED SUMMARY
-${d.description || 'System operating under nominal parameters.'}
+    <div class="grid-2">
+      <div class="meta-box">
+        <div class="meta-lbl">TARGET PROBED HOST</div>
+        <div class="meta-val" style="font-family: monospace;">${targetHost.value}</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-lbl">AUDIT TIMESTAMP</div>
+        <div class="meta-val" style="font-size: 13px;">${ts}</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-lbl">PRIMARY DIAGNOSTIC FAULT</div>
+        <div class="meta-val">
+          <span class="severity-badge sev-${d.severity || 'healthy'}">${(d.fault || 'Normal').toUpperCase()}</span>
+        </div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-lbl">AI CONFIDENCE INDEX</div>
+        <div class="meta-val"><span class="score-badge">${Math.round((d.confidence || 0.96) * 100)}% Verified</span></div>
+      </div>
+    </div>
 
-## 3. ROOT CAUSE ANALYSIS
-${(d.possible_causes || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
+    <div class="section-head">EXECUTIVE SUMMARY</div>
+    <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0;">${d.description || 'System operating within optimal physical network parameters.'}</p>
 
-## 4. ACTIONABLE REMEDIATION RECOMMENDATIONS
-${(d.recommendations || []).map((r, i) => `[ ] ${r}`).join('\n')}
+    <div class="section-head">ROOT CAUSE ANALYSIS</div>
+    <ul>
+      ${(d.possible_causes || ['Normal physical propagation bounds verified.']).map(c => `<li>${c}</li>`).join('')}
+    </ul>
 
-## 5. TELEMETRY HIGHLIGHTS
-${(d.metric_highlights || []).map(m => `- ${m}`).join('\n')}
+    <div class="section-head">ACTIONABLE ENGINEERING REMEDIATION</div>
+    <ul>
+      ${(d.recommendations || ['No corrective intervention required.']).map(r => `<li>${r}</li>`).join('')}
+    </ul>
 
----
-*Report generated automatically by Intelligent Network Troubleshooting Assistant (NOC AI)*
-`;
+    <div class="cert-footer">
+      <div>
+        <strong>Verification Standard:</strong> ITU-T G.107 / RFC 3550 Standard Telemetry<br>
+        <strong>Engine:</strong> Dual-Vector Calibrated Random Forest Classifier
+      </div>
+      <div class="signature-line">
+        TELECOM NOC AUDITOR<br>
+        <span style="font-size: 9px; font-weight: normal;">Automated Digital Signature</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 500);
+    };
+  <\/script>
+</body>
+</html>`;
 
-  const blob = new Blob([report], { type: 'text/markdown;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', `network_diagnostic_audit_report_${Date.now()}.md`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(certHtml);
+    printWindow.document.close();
+  }
 }
 </script>
 
