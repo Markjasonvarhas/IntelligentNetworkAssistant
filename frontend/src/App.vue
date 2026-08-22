@@ -19,32 +19,35 @@
       <!-- Main Dynamic Content Views -->
       <main class="main-content">
         <!-- View 1: Live Telemetry & AI Diagnosis Dashboard -->
-        <section v-if="activeTab === 'dashboard'" class="tab-view">
-          <!-- Automatic Visitor Network Detection Banner -->
+        <section v-if="activeTab === 'dashboard'" class="tab-view dashboard-view">
+          <!-- Top Row Full-Width: Automatic Visitor Network Detection Banner -->
           <ClientNetworkBanner :networkInfo="visitorNetworkInfo" />
 
-          <!-- Real-Time HUD Metric Cards -->
+          <!-- Real-Time HUD Metric Cards (4 Cards Grid) -->
           <MetricCards :metrics="latestMetrics" />
 
-          <!-- Network Quality Index & ITU-T MOS Score -->
-          <QualityScoreCard :healthScores="latestMetrics.health_scores || defaultHealthScores" />
+          <!-- Main NOC Command Center 2-Column Desktop Grid -->
+          <div class="noc-desktop-grid">
+            <!-- Left Column: Primary AI Diagnosis Terminal & Waveform Charts -->
+            <div class="noc-col-primary">
+              <DiagnosisPanel 
+                :diagnosis="latestDiagnosis" 
+                :scanning="scanning"
+                @trigger-scan="runManualScan"
+                @change-host="onHostChanged"
+              />
+              <TelemetryCharts :telemetryData="telemetryStream" />
+            </div>
 
-          <!-- Automated Diagnosis Inference Hologram Terminal -->
-          <DiagnosisPanel 
-            :diagnosis="latestDiagnosis" 
-            :scanning="scanning"
-            @trigger-scan="runManualScan"
-            @change-host="onHostChanged"
-          />
-
-          <!-- Granular 10-Packet Sequence Arrival & Jitter Inspection -->
-          <PacketSequenceView 
-            :latencyValues="latestMetrics.latency_values" 
-            :host="latestMetrics.host"
-          />
-
-          <!-- Live Waveform Charts (Latency, Jitter, Loss, Speed) -->
-          <TelemetryCharts :telemetryData="telemetryStream" />
+            <!-- Right Column: Network Quality Index & 10-Packet Inspection -->
+            <div class="noc-col-secondary">
+              <QualityScoreCard :healthScores="latestMetrics.health_scores || defaultHealthScores" />
+              <PacketSequenceView 
+                :latencyValues="latestMetrics.latency_values" 
+                :host="latestMetrics.host"
+              />
+            </div>
+          </div>
         </section>
 
         <!-- View 2: Visual Hop-by-Hop Traceroute & Bottleneck Pinpointer -->
@@ -364,9 +367,9 @@ onUnmounted(() => {
 .app-container {
   position: relative;
   z-index: 1;
-  max-width: 1440px;
+  max-width: 1560px;
   margin: 0 auto;
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem 1.75rem;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -378,6 +381,26 @@ onUnmounted(() => {
 
 .tab-view {
   animation: fadeIn 0.3s ease;
+}
+
+/* 2-Column Command Center Desktop Grid */
+.noc-desktop-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.noc-col-primary, .noc-col-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .noc-desktop-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes fadeIn {
