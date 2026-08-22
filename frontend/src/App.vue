@@ -47,34 +47,22 @@
           </div>
         </section>
 
-        <!-- View 2: Visual Hop-by-Hop Traceroute & Bottleneck Pinpointer -->
-        <section v-else-if="activeTab === 'traceroute'" class="tab-view">
+        <!-- Workspace 2: Route Topology & Multi-Cloud Observability -->
+        <section v-else-if="activeTab === 'topology'" class="tab-view multi-module-view">
           <VisualTraceroute />
-        </section>
-
-        <!-- View 3: DNS Speed Benchmark & 1-Click Optimizer -->
-        <section v-else-if="activeTab === 'dns'" class="tab-view">
-          <DnsBenchmark />
-        </section>
-
-        <!-- View 4: Autonomous Network Self-Healing Toolkit -->
-        <section v-else-if="activeTab === 'selfhealing'" class="tab-view">
-          <NetworkSelfHealing />
-        </section>
-
-        <!-- View 5: Multi-Target Ping Matrix -->
-        <section v-else-if="activeTab === 'multiprobe'" class="tab-view">
           <MultiTargetMatrix />
         </section>
 
-        <!-- View 6: Fault Simulation Sandbox -->
-        <section v-else-if="activeTab === 'simulation'" class="tab-view">
-          <SimulationSandbox />
+        <!-- Workspace 3: Resolver & Autonomous Self-Healing Suite -->
+        <section v-else-if="activeTab === 'remediation'" class="tab-view multi-module-view">
+          <DnsBenchmark />
+          <NetworkSelfHealing />
         </section>
 
-        <!-- View 7: Diagnostic Logs & History Audit -->
-        <section v-else-if="activeTab === 'history'" class="tab-view">
+        <!-- Workspace 4: Diagnostic Audit Logs & Fault Sandbox -->
+        <section v-else-if="activeTab === 'audit'" class="tab-view multi-module-view">
           <HistoryView />
+          <SimulationSandbox />
         </section>
       </main>
 
@@ -366,6 +354,12 @@ onUnmounted(() => {
 }
 
 .noc-col-primary, .noc-col-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.multi-module-view {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
