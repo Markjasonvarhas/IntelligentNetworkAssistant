@@ -8,15 +8,23 @@
 
       <!-- Trigger Scan Controls -->
       <div class="header-actions">
+        <!-- Target Host Quick Selector -->
         <div class="host-selector">
-          <span class="host-label">HOST:</span>
+          <span class="host-label">TARGET:</span>
           <input 
             type="text" 
             v-model="targetHost" 
             class="cyber-input-host" 
-            placeholder="8.8.8.8"
+            placeholder="8.8.8.8, google.com, 192.168.1.1"
             :disabled="scanning"
+            @change="$emit('change-host', targetHost)"
           />
+          <div class="quick-presets">
+            <button class="preset-pill" @click="setTarget('8.8.8.8')">8.8.8.8</button>
+            <button class="preset-pill" @click="setTarget('1.1.1.1')">1.1.1.1</button>
+            <button class="preset-pill" @click="setTarget('google.com')">google.com</button>
+            <button class="preset-pill" @click="setTarget('192.168.1.1')">Gateway</button>
+          </div>
         </div>
 
         <button 
@@ -28,7 +36,7 @@
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
           <span v-else class="spinner-icon"></span>
-          {{ scanning ? 'ANALYZING NETWORK...' : 'TRIGGER DIAGNOSIS' }}
+          {{ scanning ? 'ANALYZING...' : 'RUN AI DIAGNOSIS' }}
         </button>
       </div>
     </div>
@@ -153,10 +161,15 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['trigger-scan']);
+const emit = defineEmits(['trigger-scan', 'change-host']);
 
 const targetHost = ref('8.8.8.8');
 const circumference = 2 * Math.PI * 42; // ~263.89
+
+function setTarget(host) {
+  targetHost.value = host;
+  emit('change-host', host);
+}
 
 const confidencePercent = computed(() => {
   if (!props.diagnosis.confidence) return '0%';
@@ -233,8 +246,33 @@ function handleTriggerScan() {
   color: var(--cyan);
   font-family: var(--font-mono);
   font-size: 0.85rem;
-  width: 95px;
+  width: 150px;
   outline: none;
+}
+
+.quick-presets {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: 0.4rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 0.4rem;
+}
+
+.preset-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.preset-pill:hover {
+  background: rgba(0, 240, 255, 0.2);
+  color: var(--cyan);
+  border-color: var(--cyan);
 }
 
 .spinner-icon {

@@ -338,6 +338,36 @@ def probe_multi_targets(targets=None):
 
 
 # ==============================================================================
+# FAST REAL-TIME STREAMING PROBE (ANY HOST / DOMAIN / IP)
+# ==============================================================================
+
+def fast_live_probe(host="8.8.8.8"):
+    """
+    Rapid 2-packet probe designed for sub-second continuous real-time telemetry streaming.
+    Supports any IP address, domain name (e.g. google.com, cloudflare.com), or LAN gateway.
+    """
+    clean_host = host.strip() or "8.8.8.8"
+    res = test_ping(host=clean_host, count=2, timeout=4)
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    lat = res["average_latency"]
+    loss = res["packet_loss"]
+    jitter = res["jitter"] if res["jitter"] is not None else 0.0
+
+    return {
+        "timestamp": ts,
+        "host": clean_host,
+        "latency": lat,
+        "minimum_latency": res["minimum_latency"],
+        "maximum_latency": res["maximum_latency"],
+        "packet_loss": loss,
+        "jitter": jitter,
+        "latency_values": res["latency_values"],
+        "status": "online" if lat is not None else "offline"
+    }
+
+
+# ==============================================================================
 # CLI EXECUTION ENTRYPOINT
 # ==============================================================================
 

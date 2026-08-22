@@ -12,6 +12,12 @@ export async function fetchLiveMetrics(host = '8.8.8.8', count = 10, speed = tru
   return res.json();
 }
 
+export async function fetchRealtimeStream(host = '8.8.8.8') {
+  const res = await fetch(`${API_BASE}/realtime-stream?host=${encodeURIComponent(host)}`);
+  if (!res.ok) throw new Error('Failed to stream realtime probe');
+  return res.json();
+}
+
 export async function fetchMultiProbe() {
   const res = await fetch(`${API_BASE}/multi-probe`);
   if (!res.ok) throw new Error('Failed to fetch multi probe');

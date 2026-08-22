@@ -25,11 +25,12 @@
           <!-- Network Quality Index & ITU-T MOS Score -->
           <QualityScoreCard :healthScores="latestMetrics.health_scores || defaultHealthScores" />
 
-          <!-- AI Diagnosis Inference Hologram Terminal -->
+          <!-- Automated Diagnosis Inference Hologram Terminal -->
           <DiagnosisPanel 
             :diagnosis="latestDiagnosis" 
             :scanning="scanning"
             @trigger-scan="runManualScan"
+            @change-host="onHostChanged"
           />
 
           <!-- Granular 10-Packet Sequence Arrival & Jitter Inspection -->
@@ -87,6 +88,7 @@ import HistoryView from './components/HistoryView.vue';
 import {
   fetchSystemStatus,
   fetchTelemetryStream,
+  fetchRealtimeStream,
   triggerLiveDiagnosis
 } from './services/api';
 
@@ -141,6 +143,7 @@ const latestDiagnosis = ref({
 const telemetryStream = ref([]);
 let pollInterval = null;
 let sentinelTimer = null;
+let realtimeStreamTimer = null;
 
 // Simple Web Audio API cyber synth sound
 function playCyberBeep(freq = 880, type = 'sine', duration = 0.08) {
@@ -161,15 +164,47 @@ function playCyberBeep(freq = 880, type = 'sine', duration = 0.08) {
   } catch (e) {}
 }
 
+function onHostChanged(newHost) {
+  latestMetrics.value.host = newHost;
+  streamLiveProbe();
+}
+
+async function streamLiveProbe() {
+  if (scanning.value) return;
+  try {
+    const probe = await fetchRealtimeStream(latestMetrics.value.host);
+    if (probe && probe.latency !== null) {
+      latestMetrics.value.average_latency = probe.latency;
+      latestMetrics.value.minimum_latency = probe.minimum_latency;
+      latestMetrics.value.maximum_latency = probe.maximum_latency;
+      latestMetrics.value.packet_loss = probe.packet_loss;
+      latestMetrics.value.jitter = probe.jitter;
+      if (probe.latency_values && probe.latency_values.length) {
+        latestMetrics.value.latency_values = probe.latency_values;
+      }
+      
+      const newPoint = {
+        timestamp: probe.timestamp,
+        latency: probe.latency,
+        packet_loss: probe.packet_loss,
+        jitter: probe.jitter,
+        throughput: latestMetrics.value.throughput
+      };
+      const updated = [...telemetryStream.value, newPoint];
+      if (updated.length > 40) updated.shift();
+      telemetryStream.value = updated;
+    }
+  } catch (e) {}
+}
+
 function toggleSentinel() {
   sentinelEnabled.value = !sentinelEnabled.value;
   if (sentinelEnabled.value) {
     playCyberBeep(1200, 'square', 0.12);
-    // Start 10-second automatic polling loop
     runManualScan(latestMetrics.value.host);
     sentinelTimer = setInterval(() => {
       if (sentinelEnabled.value && !scanning.value) {
-        runManualScan(latestMetrics.value.host, false); // silent speed test for fast cycle
+        runManualScan(latestMetrics.value.host, false);
       }
     }, 10000);
   } else {
@@ -228,15 +263,18 @@ async function runManualScan(host = '8.8.8.8', speed = true) {
 onMounted(() => {
   checkStatus();
   loadTelemetry();
+  // Rapid 1.5s sub-second real-time streaming probe
+  realtimeStreamTimer = setInterval(streamLiveProbe, 1500);
+  // Periodic status refresh
   pollInterval = setInterval(() => {
     checkStatus();
-    loadTelemetry();
   }, 6000);
 });
 
 onUnmounted(() => {
   if (pollInterval) clearInterval(pollInterval);
   if (sentinelTimer) clearInterval(sentinelTimer);
+  if (realtimeStreamTimer) clearInterval(realtimeStreamTimer);
 });
 </script>
 

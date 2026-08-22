@@ -5,7 +5,7 @@ import platform
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
-from network_monitor import collect_metrics, verify_environment, probe_multi_targets
+from network_monitor import collect_metrics, verify_environment, probe_multi_targets, fast_live_probe
 from diagnosis_engine import get_diagnosis, engine
 from database.db import (
     insert_diagnosis,
@@ -48,6 +48,26 @@ def get_system_status():
         "model_loaded": model_loaded,
         "model_type": type(engine.model.named_steps["classifier"]).__name__ if model_loaded else "Heuristic Rule Engine"
     }), 200
+
+
+@app.route("/api/realtime-stream", methods=["GET"])
+def get_realtime_stream_probe():
+    """
+    Ultra-fast sub-second real-time telemetry probe for ANY network, IP, domain, or gateway.
+    """
+    host = request.args.get("host", "8.8.8.8").strip()
+    data = fast_live_probe(host)
+
+    if data["latency"] is not None:
+        insert_telemetry({
+            "timestamp": data["timestamp"],
+            "average_latency": data["latency"],
+            "packet_loss": data["packet_loss"],
+            "jitter": data["jitter"],
+            "throughput": None
+        })
+
+    return jsonify(data), 200
 
 
 @app.route("/api/multi-probe", methods=["GET"])
