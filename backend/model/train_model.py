@@ -9,7 +9,8 @@ from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
@@ -120,22 +121,36 @@ def train_and_compare_models(X, y):
     print(f"Testing Set Size  : {len(X_test)} samples")
     print("-" * 65)
 
-    # Candidate Models with standardized pipelines
+    # Candidate Models with standardized pipelines & probability calibration
     models = {
         "Decision Tree": Pipeline([
             ("scaler", StandardScaler()),
             ("classifier", DecisionTreeClassifier(
-                max_depth=5,
-                min_samples_split=4,
+                max_depth=6,
+                min_samples_split=2,
+                class_weight="balanced",
                 random_state=42
             ))
         ]),
-        "Random Forest": Pipeline([
+        "Calibrated Random Forest": Pipeline([
             ("scaler", StandardScaler()),
-            ("classifier", RandomForestClassifier(
+            ("classifier", CalibratedClassifierCV(
+                estimator=RandomForestClassifier(
+                    n_estimators=150,
+                    max_depth=8,
+                    min_samples_split=2,
+                    class_weight="balanced",
+                    random_state=42
+                ),
+                cv=3
+            ))
+        ]),
+        "Gradient Boosting": Pipeline([
+            ("scaler", StandardScaler()),
+            ("classifier", GradientBoostingClassifier(
                 n_estimators=100,
-                max_depth=6,
-                min_samples_split=3,
+                learning_rate=0.1,
+                max_depth=4,
                 random_state=42
             ))
         ]),
@@ -144,6 +159,7 @@ def train_and_compare_models(X, y):
             ("classifier", LogisticRegression(
                 max_iter=1000,
                 C=1.0,
+                class_weight="balanced",
                 random_state=42
             ))
         ])
