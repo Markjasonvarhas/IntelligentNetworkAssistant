@@ -1,412 +1,115 @@
 {
-  "model_name": "Calibrated Random Forest",
-  "target_classes": [
-    "high_jitter",
-    "high_latency",
-    "normal",
-    "packet_loss"
-  ],
-  "feature_names": [
+  "model_type": "Calibrated Random Forest",
+  "features_used": [
     "minimum_latency",
     "maximum_latency",
     "average_latency",
     "packet_loss",
     "jitter",
-    "throughput"
+    "throughput",
+    "latency_spread",
+    "jitter_to_latency_ratio",
+    "loss_impact_index",
+    "itu_r_quality_factor"
   ],
-  "train_samples": 72,
-  "test_samples": 25,
-  "class_distribution": {
-    "normal": 65,
-    "packet_loss": 12,
-    "high_jitter": 11,
-    "high_latency": 9
-  },
-  "model_comparisons": {
-    "Decision Tree": {
-      "accuracy": 0.92,
-      "precision": 0.92,
-      "recall": 0.92,
-      "f1_score": 0.92,
-      "cv_accuracy_mean": 0.8971,
-      "cv_scores": [
-        0.8788,
-        0.875,
-        0.9375
-      ],
-      "confusion_matrix": [
-        [
-          3,
-          0,
-          0,
-          0
-        ],
-        [
-          0,
-          2,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          16,
-          1
-        ],
-        [
-          0,
-          0,
-          1,
-          2
-        ]
-      ],
-      "classification_report": {
-        "high_jitter": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 3.0
-        },
-        "high_latency": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 2.0
-        },
-        "normal": {
-          "precision": 0.9411764705882353,
-          "recall": 0.9411764705882353,
-          "f1-score": 0.9411764705882353,
-          "support": 17.0
-        },
-        "packet_loss": {
-          "precision": 0.6666666666666666,
-          "recall": 0.6666666666666666,
-          "f1-score": 0.6666666666666666,
-          "support": 3.0
-        },
-        "accuracy": 0.92,
-        "macro avg": {
-          "precision": 0.9019607843137255,
-          "recall": 0.9019607843137255,
-          "f1-score": 0.9019607843137255,
-          "support": 25.0
-        },
-        "weighted avg": {
-          "precision": 0.92,
-          "recall": 0.92,
-          "f1-score": 0.92,
-          "support": 25.0
-        }
-      }
+  "total_dataset_samples": 1200,
+  "training_samples": 960,
+  "test_samples": 240,
+  "accuracy": 1.0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1_score": 1.0,
+  "cv_5fold_mean_f1": 1.0,
+  "labels": [
+    "high_jitter",
+    "high_latency",
+    "normal",
+    "packet_loss"
+  ],
+  "confusion_matrix": [
+    [
+      60,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      60,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      60,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      60
+    ]
+  ],
+  "per_class_metrics": {
+    "high_jitter": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 60.0
     },
-    "Calibrated Random Forest": {
-      "accuracy": 0.96,
-      "precision": 0.9622,
-      "recall": 0.96,
-      "f1_score": 0.9566,
-      "cv_accuracy_mean": 0.959,
-      "cv_scores": [
-        0.9394,
-        0.9688,
-        0.9688
-      ],
-      "confusion_matrix": [
-        [
-          3,
-          0,
-          0,
-          0
-        ],
-        [
-          0,
-          2,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          17,
-          0
-        ],
-        [
-          0,
-          0,
-          1,
-          2
-        ]
-      ],
-      "classification_report": {
-        "high_jitter": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 3.0
-        },
-        "high_latency": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 2.0
-        },
-        "normal": {
-          "precision": 0.9444444444444444,
-          "recall": 1.0,
-          "f1-score": 0.9714285714285714,
-          "support": 17.0
-        },
-        "packet_loss": {
-          "precision": 1.0,
-          "recall": 0.6666666666666666,
-          "f1-score": 0.8,
-          "support": 3.0
-        },
-        "accuracy": 0.96,
-        "macro avg": {
-          "precision": 0.9861111111111112,
-          "recall": 0.9166666666666666,
-          "f1-score": 0.9428571428571428,
-          "support": 25.0
-        },
-        "weighted avg": {
-          "precision": 0.9622222222222221,
-          "recall": 0.96,
-          "f1-score": 0.9565714285714284,
-          "support": 25.0
-        }
-      }
+    "high_latency": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 60.0
     },
-    "Gradient Boosting": {
-      "accuracy": 0.92,
-      "precision": 0.9222,
-      "recall": 0.92,
-      "f1_score": 0.9166,
-      "cv_accuracy_mean": 0.9283,
-      "cv_scores": [
-        0.8788,
-        0.9688,
-        0.9375
-      ],
-      "confusion_matrix": [
-        [
-          2,
-          0,
-          0,
-          1
-        ],
-        [
-          0,
-          2,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          17,
-          0
-        ],
-        [
-          0,
-          0,
-          1,
-          2
-        ]
-      ],
-      "classification_report": {
-        "high_jitter": {
-          "precision": 1.0,
-          "recall": 0.6666666666666666,
-          "f1-score": 0.8,
-          "support": 3.0
-        },
-        "high_latency": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 2.0
-        },
-        "normal": {
-          "precision": 0.9444444444444444,
-          "recall": 1.0,
-          "f1-score": 0.9714285714285714,
-          "support": 17.0
-        },
-        "packet_loss": {
-          "precision": 0.6666666666666666,
-          "recall": 0.6666666666666666,
-          "f1-score": 0.6666666666666666,
-          "support": 3.0
-        },
-        "accuracy": 0.92,
-        "macro avg": {
-          "precision": 0.9027777777777778,
-          "recall": 0.8333333333333333,
-          "f1-score": 0.8595238095238095,
-          "support": 25.0
-        },
-        "weighted avg": {
-          "precision": 0.9222222222222222,
-          "recall": 0.92,
-          "f1-score": 0.9165714285714285,
-          "support": 25.0
-        }
-      }
+    "normal": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 60.0
     },
-    "Logistic Regression": {
-      "accuracy": 0.92,
-      "precision": 0.94,
-      "recall": 0.92,
-      "f1_score": 0.9232,
-      "cv_accuracy_mean": 0.8049,
-      "cv_scores": [
-        0.7273,
-        0.75,
-        0.9375
-      ],
-      "confusion_matrix": [
-        [
-          3,
-          0,
-          0,
-          0
-        ],
-        [
-          0,
-          2,
-          0,
-          0
-        ],
-        [
-          1,
-          0,
-          15,
-          1
-        ],
-        [
-          0,
-          0,
-          0,
-          3
-        ]
-      ],
-      "classification_report": {
-        "high_jitter": {
-          "precision": 0.75,
-          "recall": 1.0,
-          "f1-score": 0.8571428571428571,
-          "support": 3.0
-        },
-        "high_latency": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 2.0
-        },
-        "normal": {
-          "precision": 1.0,
-          "recall": 0.8823529411764706,
-          "f1-score": 0.9375,
-          "support": 17.0
-        },
-        "packet_loss": {
-          "precision": 0.75,
-          "recall": 1.0,
-          "f1-score": 0.8571428571428571,
-          "support": 3.0
-        },
-        "accuracy": 0.92,
-        "macro avg": {
-          "precision": 0.875,
-          "recall": 0.9705882352941176,
-          "f1-score": 0.9129464285714286,
-          "support": 25.0
-        },
-        "weighted avg": {
-          "precision": 0.94,
-          "recall": 0.92,
-          "f1-score": 0.9232142857142855,
-          "support": 25.0
-        }
-      }
+    "packet_loss": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 60.0
     }
   },
-  "selected_model_metrics": {
-    "accuracy": 0.96,
-    "precision": 0.9622,
-    "recall": 0.96,
-    "f1_score": 0.9566,
-    "cv_accuracy_mean": 0.959,
-    "cv_scores": [
-      0.9394,
-      0.9688,
-      0.9688
-    ],
-    "confusion_matrix": [
-      [
-        3,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        2,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        17,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        2
-      ]
-    ],
-    "classification_report": {
-      "high_jitter": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 3.0
-      },
-      "high_latency": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 2.0
-      },
-      "normal": {
-        "precision": 0.9444444444444444,
-        "recall": 1.0,
-        "f1-score": 0.9714285714285714,
-        "support": 17.0
-      },
-      "packet_loss": {
-        "precision": 1.0,
-        "recall": 0.6666666666666666,
-        "f1-score": 0.8,
-        "support": 3.0
-      },
-      "accuracy": 0.96,
-      "macro avg": {
-        "precision": 0.9861111111111112,
-        "recall": 0.9166666666666666,
-        "f1-score": 0.9428571428571428,
-        "support": 25.0
-      },
-      "weighted avg": {
-        "precision": 0.9622222222222221,
-        "recall": 0.96,
-        "f1-score": 0.9565714285714284,
-        "support": 25.0
-      }
+  "model_comparison": {
+    "Calibrated Random Forest": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "cv_mean_f1": 1.0,
+      "cv_std": 0.0
+    },
+    "Gradient Boosting": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "cv_mean_f1": 0.9979,
+      "cv_std": 0.0026
+    },
+    "Decision Tree (Baseline)": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "cv_mean_f1": 0.9979,
+      "cv_std": 0.0026
+    },
+    "Logistic Regression": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "cv_mean_f1": 1.0,
+      "cv_std": 0.0
     }
   }
 }

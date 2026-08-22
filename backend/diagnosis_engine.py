@@ -180,13 +180,34 @@ class NetworkDiagnosisEngine:
         Returns:
             dict: Complete diagnosis payload with problem, confidence, causes, and actions.
         """
+        # Extract base scalars
+        min_l = float(metrics.get("minimum_latency", 0) or 0)
+        max_l = float(metrics.get("maximum_latency", 0) or 0)
+        avg_l = float(metrics.get("average_latency", 0) or 0)
+        loss_v = float(metrics.get("packet_loss", 0) or 0)
+        jit_v = float(metrics.get("jitter", 0) or 0)
+        tp_v = float(metrics.get("throughput", 50) or 50)
+
+        # Compute derived physics domain features
+        spread_v = max(0.0, max_l - min_l)
+        jit_ratio_v = jit_v / (avg_l + 1e-5)
+        loss_impact_v = loss_v / (tp_v + 0.1)
+
+        id_factor = 0.024 * avg_l + 0.11 * max(0.0, avg_l - 177.3)
+        ie_factor = 11.0 + 40.0 * np.log(1.0 + 10.0 * (loss_v / 100.0))
+        r_factor = float(np.clip(93.2 - id_factor - ie_factor, 0.0, 100.0))
+
         sample_df = pd.DataFrame([{
-            "minimum_latency": float(metrics.get("minimum_latency", 0) or 0),
-            "maximum_latency": float(metrics.get("maximum_latency", 0) or 0),
-            "average_latency": float(metrics.get("average_latency", 0) or 0),
-            "packet_loss": float(metrics.get("packet_loss", 0) or 0),
-            "jitter": float(metrics.get("jitter", 0) or 0),
-            "throughput": float(metrics.get("throughput", 0) or 0)
+            "minimum_latency": min_l,
+            "maximum_latency": max_l,
+            "average_latency": avg_l,
+            "packet_loss": loss_v,
+            "jitter": jit_v,
+            "throughput": tp_v,
+            "latency_spread": spread_v,
+            "jitter_to_latency_ratio": jit_ratio_v,
+            "loss_impact_index": loss_impact_v,
+            "itu_r_quality_factor": r_factor
         }])
 
         # 1. Run Expert Rule Envelope

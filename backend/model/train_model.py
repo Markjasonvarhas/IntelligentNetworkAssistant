@@ -31,8 +31,8 @@ MODEL_DIR = os.path.join(BACKEND_DIR, "model")
 MODEL_SAVE_PATH = os.path.join(MODEL_DIR, "trained_model.joblib")
 METRICS_SAVE_PATH = os.path.join(MODEL_DIR, "model_metrics.json")
 
-# Independent variables (Features)
-FEATURE_COLUMNS = [
+# Base Raw Telemetry Columns
+BASE_FEATURE_COLUMNS = [
     "minimum_latency",
     "maximum_latency",
     "average_latency",
@@ -41,103 +41,114 @@ FEATURE_COLUMNS = [
     "throughput"
 ]
 
-# Dependent variable (Target)
+# Engineered Domain Physics Features
+ENGINEERED_FEATURE_COLUMNS = [
+    "latency_spread",
+    "jitter_to_latency_ratio",
+    "loss_impact_index",
+    "itu_r_quality_factor"
+]
+
+ALL_FEATURE_COLUMNS = BASE_FEATURE_COLUMNS + ENGINEERED_FEATURE_COLUMNS
 TARGET_COLUMN = "fault_label"
 
 
 # ==============================================================================
-# DATASET LOADING & INTEGRITY CHECKS
+# NETWORK DOMAIN FEATURE ENGINEERING
 # ==============================================================================
 
-def load_and_validate_dataset():
+def compute_network_features(df):
     """
-    Loads dataset from CSV, performs strict research validation,
-    and removes any non-feature columns (timestamp, host) to prevent data leakage.
+    Transforms raw telemetry into 10 physics-informed domain features based on
+    RFC 3550 jitter variance, queue oscillation spread, and ITU-T G.107 E-model ratings.
+    """
+    feat_df = df.copy()
+    
+    # 1. Latency Spread / Bufferbloat Fluctuation Delta
+    feat_df["latency_spread"] = np.maximum(0.0, feat_df["maximum_latency"] - feat_df["minimum_latency"])
+    
+    # 2. Jitter-to-Latency Relative Ratio
+    feat_df["jitter_to_latency_ratio"] = feat_df["jitter"] / (feat_df["average_latency"] + 1e-5)
+    
+    # 3. Loss-Impacting Index (Severity on active bandwidth)
+    feat_df["loss_impact_index"] = feat_df["packet_loss"] / (feat_df["throughput"] + 0.1)
+    
+    # 4. ITU-T G.107 Standard Transmission Rating Factor (R)
+    avg_l = feat_df["average_latency"].values
+    loss_v = feat_df["packet_loss"].values
+    
+    id_factor = 0.024 * avg_l + 0.11 * np.maximum(0.0, avg_l - 177.3)
+    ie_factor = 11.0 + 40.0 * np.log(1.0 + 10.0 * (loss_v / 100.0))
+    r_factor = np.clip(93.2 - id_factor - ie_factor, 0.0, 100.0)
+    feat_df["itu_r_quality_factor"] = np.round(r_factor, 2)
+    
+    return feat_df
+
+
+# ==============================================================================
+# DATASET LOADING & VALIDATION
+# ==============================================================================
+
+def load_and_prepare_data():
+    """
+    Loads dataset, executes domain feature engineering, and performs integrity checks.
     """
     if not os.path.isfile(DATASET_PATH):
-        raise FileNotFoundError(f"Dataset file not found at: {DATASET_PATH}")
-
-    df = pd.read_csv(DATASET_PATH)
+        raise FileNotFoundError(f"Dataset not found at: {DATASET_PATH}")
+        
+    raw_df = pd.read_csv(DATASET_PATH)
     print(f"\n[+] Loaded dataset from: {DATASET_PATH}")
-    print(f"[+] Total raw samples: {len(df)}")
-
-    # Check for required columns
-    required_cols = FEATURE_COLUMNS + [TARGET_COLUMN]
-    for col in required_cols:
-        if col not in df.columns:
-            raise ValueError(f"Missing required column in dataset: {col}")
-
-    # Drop any rows with NaN/null values to preserve research integrity
-    cleaned_df = df[required_cols].dropna().copy()
-    dropped_count = len(df) - len(cleaned_df)
-    if dropped_count > 0:
-        print(f"[!] Warning: Dropped {dropped_count} incomplete rows with null values.")
-
+    print(f"[+] Total raw samples: {len(raw_df)}")
+    
+    # Apply Feature Engineering
+    processed_df = compute_network_features(raw_df)
+    
+    required_cols = ALL_FEATURE_COLUMNS + [TARGET_COLUMN]
+    cleaned_df = processed_df[required_cols].dropna().copy()
+    
     print("\nDataset Class Distribution:")
     class_counts = cleaned_df[TARGET_COLUMN].value_counts()
     for cls_name, count in class_counts.items():
-        print(f"  - {cls_name.ljust(15)}: {count} samples ({count / len(cleaned_df) * 100:.1f}%)")
-
-    # Research validation check
-    unique_classes = cleaned_df[TARGET_COLUMN].unique()
-    if len(unique_classes) < 2:
-        raise ValueError("Dataset must contain at least 2 distinct classes to train a classifier.")
-
-    X = cleaned_df[FEATURE_COLUMNS]
+        print(f"  - {cls_name.ljust(16)}: {count} samples ({count / len(cleaned_df) * 100:.1f}%)")
+        
+    X = cleaned_df[ALL_FEATURE_COLUMNS]
     y = cleaned_df[TARGET_COLUMN]
-
+    
     return X, y, class_counts.to_dict()
 
 
 # ==============================================================================
-# MODEL TRAINING & COMPARATIVE BENCHMARKING
+# MODEL TRAINING & CALIBRATED BENCHMARK
 # ==============================================================================
 
-def train_and_compare_models(X, y):
+def train_and_benchmark(X, y):
     """
-    Trains and compares multiple classification models:
-    1. Decision Tree (Explainable baseline)
-    2. Random Forest (Ensemble classifier)
-    3. Logistic Regression (Linear probabilistic classifier)
-
-    Uses Stratified Train/Test Split (75% Train, 25% Test) to preserve class proportions.
+    Trains and cross-validates multiple ML models using Stratified 5-Fold Cross-Validation.
+    Selects the highest-performing Calibrated Ensemble for production inference.
     """
-    print("\n" + "=" * 65)
-    print("      MACHINE LEARNING MODEL TRAINING & COMPARATIVE BENCHMARK")
-    print("=" * 65)
-
-    # Check if smallest class has enough samples for stratified split
-    min_class_count = y.value_counts().min()
-    use_stratify = y if min_class_count >= 2 else None
+    print("\n" + "=" * 70)
+    print("   TELECOM-GRADE MACHINE LEARNING TRAINING & CROSS-VALIDATION")
+    print("=" * 70)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y,
-        test_size=0.25,
+        test_size=0.20,
         random_state=42,
-        stratify=use_stratify
+        stratify=y
     )
 
-    print(f"Training Set Size : {len(X_train)} samples")
-    print(f"Testing Set Size  : {len(X_test)} samples")
-    print("-" * 65)
+    print(f"Features in Pipeline : {len(ALL_FEATURE_COLUMNS)} ({', '.join(ALL_FEATURE_COLUMNS)})")
+    print(f"Training Set Size    : {len(X_train)} samples")
+    print(f"Testing Set Size     : {len(X_test)} samples")
+    print("-" * 70)
 
-    # Candidate Models with standardized pipelines & probability calibration
-    models = {
-        "Decision Tree": Pipeline([
-            ("scaler", StandardScaler()),
-            ("classifier", DecisionTreeClassifier(
-                max_depth=6,
-                min_samples_split=2,
-                class_weight="balanced",
-                random_state=42
-            ))
-        ]),
+    candidate_models = {
         "Calibrated Random Forest": Pipeline([
             ("scaler", StandardScaler()),
             ("classifier", CalibratedClassifierCV(
                 estimator=RandomForestClassifier(
-                    n_estimators=150,
-                    max_depth=8,
+                    n_estimators=200,
+                    max_depth=10,
                     min_samples_split=2,
                     class_weight="balanced",
                     random_state=42
@@ -148,9 +159,17 @@ def train_and_compare_models(X, y):
         "Gradient Boosting": Pipeline([
             ("scaler", StandardScaler()),
             ("classifier", GradientBoostingClassifier(
-                n_estimators=100,
-                learning_rate=0.1,
-                max_depth=4,
+                n_estimators=120,
+                learning_rate=0.08,
+                max_depth=5,
+                random_state=42
+            ))
+        ]),
+        "Decision Tree (Baseline)": Pipeline([
+            ("scaler", StandardScaler()),
+            ("classifier", DecisionTreeClassifier(
+                max_depth=6,
+                class_weight="balanced",
                 random_state=42
             ))
         ]),
@@ -158,7 +177,6 @@ def train_and_compare_models(X, y):
             ("scaler", StandardScaler()),
             ("classifier", LogisticRegression(
                 max_iter=1000,
-                C=1.0,
                 class_weight="balanced",
                 random_state=42
             ))
@@ -166,129 +184,90 @@ def train_and_compare_models(X, y):
     }
 
     results = {}
-    best_model_name = None
-    best_f1_score = -1.0
+    best_name = "Calibrated Random Forest"
+    best_f1 = -1.0
     best_pipeline = None
 
-    unique_labels = sorted(list(y.unique()))
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-    for name, pipeline in models.items():
-        print(f"\n[*] Training {name}...")
+    for name, pipeline in candidate_models.items():
+        # 5-Fold Stratified Cross-Validation
+        cv_scores = cross_val_score(pipeline, X_train, y_train, cv=skf, scoring="f1_weighted")
+        
+        # Train on entire training split & Evaluate on holdout test split
         pipeline.fit(X_train, y_train)
-
-        # Predictions
         y_pred = pipeline.predict(X_test)
-
-        # Metrics
+        
         acc = accuracy_score(y_test, y_pred)
         prec = precision_score(y_test, y_pred, average="weighted", zero_division=0)
         rec = recall_score(y_test, y_pred, average="weighted", zero_division=0)
         f1 = f1_score(y_test, y_pred, average="weighted", zero_division=0)
-        cm = confusion_matrix(y_test, y_pred, labels=unique_labels).tolist()
-
-        # Cross Validation (if sufficient samples)
-        cv_scores = []
-        if min_class_count >= 3:
-            try:
-                cv = StratifiedKFold(n_splits=min(3, min_class_count), shuffle=True, random_state=42)
-                cv_scores = cross_val_score(pipeline, X, y, cv=cv, scoring="accuracy").tolist()
-            except Exception:
-                cv_scores = [acc]
-        else:
-            cv_scores = [acc]
-
-        mean_cv = float(np.mean(cv_scores)) if cv_scores else acc
 
         results[name] = {
             "accuracy": round(float(acc), 4),
             "precision": round(float(prec), 4),
             "recall": round(float(rec), 4),
             "f1_score": round(float(f1), 4),
-            "cv_accuracy_mean": round(mean_cv, 4),
-            "cv_scores": [round(float(s), 4) for s in cv_scores],
-            "confusion_matrix": cm,
-            "classification_report": classification_report(
-                y_test, y_pred,
-                labels=unique_labels,
-                output_dict=True,
-                zero_division=0
-            )
+            "cv_mean_f1": round(float(np.mean(cv_scores)), 4),
+            "cv_std": round(float(np.std(cv_scores)), 4)
         }
 
-        print(f"  -> Accuracy : {acc * 100:.2f}%")
-        print(f"  -> F1-Score : {f1:.4f}")
-        print(f"  -> Precision: {prec:.4f}")
-        print(f"  -> Recall   : {rec:.4f}")
+        print(f"\nModel: {name}")
+        print(f"  5-Fold CV F1-Score : {np.mean(cv_scores):.4f} (+/- {np.std(cv_scores):.4f})")
+        print(f"  Holdout Test Acc   : {acc * 100:.2f}%")
+        print(f"  Holdout Weighted F1: {f1:.4f}")
 
-        # Choose best model primarily based on weighted F1-Score (balances precision & recall)
-        if f1 > best_f1_score:
-            best_f1_score = f1
-            best_model_name = name
+        if f1 > best_f1:
+            best_f1 = f1
+            best_name = name
             best_pipeline = pipeline
 
-    print("\n" + "=" * 65)
-    print(f" [OK] BEST PERFORMING MODEL: {best_model_name}")
-    print(f" [OK] Top Weighted F1-Score: {best_f1_score:.4f}")
-    print("=" * 65)
+    print("\n" + "=" * 70)
+    print(f"[*] WINNING PRODUCTION MODEL: {best_name} (Holdout F1: {best_f1:.4f})")
+    print("=" * 70)
 
-    return {
-        "best_model_name": best_model_name,
-        "best_pipeline": best_pipeline,
-        "labels": unique_labels,
-        "feature_names": FEATURE_COLUMNS,
-        "model_comparisons": results,
-        "test_size": len(X_test),
-        "train_size": len(X_train)
-    }
+    # Detailed Holdout Evaluation for winning model
+    y_pred_best = best_pipeline.predict(X_test)
+    labels = sorted(list(y.unique()))
+    cm = confusion_matrix(y_test, y_pred_best, labels=labels)
+    report_dict = classification_report(y_test, y_pred_best, target_names=labels, output_dict=True, zero_division=0)
 
+    print("\nConfusion Matrix (Holdout Test Set):")
+    cm_df = pd.DataFrame(cm, index=[f"Actual_{l}" for l in labels], columns=[f"Pred_{l}" for l in labels])
+    print(cm_df.to_string())
 
-# ==============================================================================
-# MODEL PERSISTENCE & METRICS EXPORT
-# ==============================================================================
-
-def save_trained_artifacts(training_results, class_distribution):
-    """
-    Saves the best trained pipeline to .joblib and exports all evaluation
-    metrics to a JSON file for the Flask API and Vue Dashboard.
-    """
+    # Save Production Artifacts
     os.makedirs(MODEL_DIR, exist_ok=True)
+    joblib.dump(best_pipeline, MODEL_SAVE_PATH)
+    print(f"\n[+] Saved winning model pipeline to: {MODEL_SAVE_PATH}")
 
-    # 1. Save ML Model Pipeline
-    joblib.dump(training_results["best_pipeline"], MODEL_SAVE_PATH)
-    print(f"\n[OK] Model successfully saved to: {MODEL_SAVE_PATH}")
-
-    # 2. Export Metrics JSON
     metrics_payload = {
-        "model_name": training_results["best_model_name"],
-        "target_classes": training_results["labels"],
-        "feature_names": training_results["feature_names"],
-        "train_samples": training_results["train_size"],
-        "test_samples": training_results["test_size"],
-        "class_distribution": class_distribution,
-        "model_comparisons": training_results["model_comparisons"],
-        "selected_model_metrics": training_results["model_comparisons"][training_results["best_model_name"]]
+        "model_type": best_name,
+        "features_used": ALL_FEATURE_COLUMNS,
+        "total_dataset_samples": len(X),
+        "training_samples": len(X_train),
+        "test_samples": len(X_test),
+        "accuracy": results[best_name]["accuracy"],
+        "precision": results[best_name]["precision"],
+        "recall": results[best_name]["recall"],
+        "f1_score": results[best_name]["f1_score"],
+        "cv_5fold_mean_f1": results[best_name]["cv_mean_f1"],
+        "labels": labels,
+        "confusion_matrix": cm.tolist(),
+        "per_class_metrics": {l: report_dict[l] for l in labels if l in report_dict},
+        "model_comparison": results
     }
 
-    with open(METRICS_SAVE_PATH, mode="w", encoding="utf-8") as f:
+    with open(METRICS_SAVE_PATH, "w") as f:
         json.dump(metrics_payload, f, indent=2)
+    print(f"[+] Saved model metrics JSON to: {METRICS_SAVE_PATH}")
 
-    print(f"[OK] Model evaluation metrics exported to: {METRICS_SAVE_PATH}")
+    return best_pipeline, metrics_payload
 
-
-# ==============================================================================
-# MAIN EXECUTION ENTRYPOINT
-# ==============================================================================
 
 def main():
-    try:
-        X, y, class_distribution = load_and_validate_dataset()
-        results = train_and_compare_models(X, y)
-        save_trained_artifacts(results, class_distribution)
-        print("\n[OK] Machine Learning Pipeline Execution Complete.\n")
-    except Exception as err:
-        print(f"\n[!] Training Pipeline Error: {err}")
-        sys.exit(1)
-
+    X, y, counts = load_and_prepare_data()
+    train_and_benchmark(X, y)
 
 if __name__ == "__main__":
     main()
